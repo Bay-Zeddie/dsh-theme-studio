@@ -1,0 +1,6 @@
+node_modules/
+lib-build/
+lib/*.tsbuildinfo
+*.log
+*.bak
+.DS_Store
