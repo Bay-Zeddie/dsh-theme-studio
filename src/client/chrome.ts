@@ -116,16 +116,18 @@ import { rgba } from '../../lib/color-core.js'
           '.lc-root .lc-card, .lc-modal-card{'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           /* —— 系统性兜底：DockKit 停靠面板族（文件/浏览器/终端/上下文洞察…）——
-             宿主设计坐在不透明应用底色上，玻璃化后面板背后就是会话文字
-             （主人实测：文件树/浏览器页整个透字）。按框架钩子 [data-dockkit-*]
-             一次覆盖现有与未来的全部停靠面板，不逐个类名追。 */
+             宿主设计坐在不透明应用底色上，玻璃化后面板背后就是会话文字。
+             按框架钩子 [data-dockkit-*] 一次覆盖。低不透明度 + 大模糊：
+             磨砂把背后文字糊掉，面板保持透亮（主人实测 0.65 太闷）。 */
           'body.dts-on [data-dockkit-pane], body.dts-on [data-dockkit-float]{'
-          + 'background:rgba(16,20,24,.65)!important;'
+          + 'background:rgba(16,20,24,.28)!important;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
-          /* —— 弹窗卡片族：实底，背后一律看不清（宿主 + 插件 + 自家统一）——
-             设置确认框、插件确认框都曾透出底层文字（主人实测）。 */
+          /* —— 弹窗卡片族：低不透明度 + 大模糊 —— 透字的根因是这批弹窗没有
+             blur（只有半透明底），补上磨砂后低 alpha 就能看不清背后文字，
+             观感与输入卡一致（0.88 实底曾把整体压闷，主人实测）。 */
           '[role="dialog"], .dsh-agent-dialog, .dsh-agent-modal-card{'
-          + 'background-color:rgba(16,20,24,.88)!important}',
+          + 'background-color:rgba(16,20,24,.32)!important;'
+          + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'

@@ -1313,7 +1313,7 @@ it('回归锁 · 合成成本红线：backdrop-filter 只许挂白名单类（98
   // （下划线与连字符后缀两类宿主形态都要认：_backdrop 与 lc-ov-backdrop 同族）。
   const ALLOW = [/dts-select-trigger/, /dts-textarea/, /dts-select-menu/, /dts-modal-mask/,
     /_tag_/, /_file"/, /_preview/, /_card/, /[_-]backdrop/, /[_-]scrim/, /data-composer-stats/,
-    /class\$="_trigger"/, /lc-card/, /lc-modal-card/, /dockkit/, /role="dialog"/]
+    /class\$="_trigger"/, /lc-card/, /lc-modal-card/, /dockkit/, /role="dialog"/, /dsh-agent/]
   // 密集复用类（token 行输入 49×2、下拉选项、按钮、色卡）：单屏几十个实例，
   // 挂 backdrop-filter = 合成层爆炸（色彩页闪屏、渲染撕裂、丢失交互实测）。
   const DENY = [/\.dts-input(?![a-z-])/, /\.dts-select-option/, /\.dts-btn(?![a-z-])/,
