@@ -98,6 +98,14 @@ describe('锁 J · 引擎：视差/显式令牌/首屏透明', () => {
     assert.match(boot, /#root,#root>\*\{background-color:transparent\}/)
     assert.equal(buildBootCss(normalizeDoc({})), '')
   })
+
+  it('Agent 预设选择器包裹层（_menuAnchor）豁免毛玻璃兜底（创造模式深斑实测）', () => {
+    const css = buildCss(normalizeDoc({ backdrop: { mode: 'gradient' }, glass: { enabled: true } }))
+    const blanket = css.indexOf('[class*="menu"]')
+    const exempt = css.indexOf('[class$="_menuAnchor"]')
+    assert.ok(blanket !== -1 && exempt !== -1 && exempt > blanket, '豁免声明必须排在兜底之后（同特异性源序取胜）')
+    assert.match(css, /\[class\$="_menuAnchor"\], \[class\*="_menuAnchor "\] \{[^}]*backdrop-filter: none/, '包裹层必须摘掉常驻模糊')
+  })
 })
 
 describe('锁 K · rgb() 通道百分比', () => {

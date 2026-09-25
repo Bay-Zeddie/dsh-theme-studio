@@ -97,6 +97,12 @@ import { rgba } from '../../lib/color-core.js'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '.dts-textarea{min-height:132px;font-family:var(--ds-font-family-code,monospace);font-size:11.5px;'
           + 'line-height:1.6;resize:vertical}',
+          /* 会话统计条（StatsPills，根节点带 data-composer-stats）：宿主默认完全无背景
+             （药丸 background:0 0，原设计坐在不透明底上）；壁纸主题下消息文字从它
+             背后滚过直接叠字（主人实测）。给输入卡同款玻璃 —— 不透但毛玻璃质感。 */
+          '[data-composer-stats]{background:rgba(16,20,24,.15)!important;'
+          + 'border-radius:16px;padding:4px 12px;'
+          + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'

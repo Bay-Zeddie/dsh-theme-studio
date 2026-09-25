@@ -165,14 +165,14 @@ $DSH_HOME/theme-studio/
 不依赖 DSH 运行实例，也不需要浏览器：
 
 ```powershell
-npm test         # 完整链：构建同步校验 → 140 行为锁 → 类型检查（宿主 JS + TS 源双网） → 装载契约冒烟 → 端到端集成
+npm test         # 完整链：构建同步校验 → 141 行为锁 → 类型检查（宿主 JS + TS 源双网） → 装载契约冒烟 → 端到端集成
 npm run build:client   # 改了 src/client/* 后重新构建 client.js
 npm run typecheck      # 只跑类型网
 ```
 
-**四层验证链**：① `build-client --check`（改源码忘构建 → 直接红）② 140 条行为锁 ③ `tsc` 类型网双配置（`jsconfig.json` 宿主 JS + `tsconfig.client.json` 浏览器半 TS 源码——后者是第三轮审计补上的：此前 tsc 缺席时 TS 源码从未被检查过）④ `verify-bundle` 装载契约 + `integration-check` 端到端装配（15 项）。
+**四层验证链**：① `build-client --check`（改源码忘构建 → 直接红）② 141 条行为锁 ③ `tsc` 类型网双配置（`jsconfig.json` 宿主 JS + `tsconfig.client.json` 浏览器半 TS 源码——后者是第三轮审计补上的：此前 tsc 缺席时 TS 源码从未被检查过）④ `verify-bundle` 装载契约 + `integration-check` 端到端装配（15 项）。
 
-140 个用例，覆盖：
+141 个用例，覆盖：
 
 - **`theme-studio.test.mjs`** — 真起 `node:http`：上传→**逐字节回读比对**→Range 区间内容正确→416/304/HEAD→去重→鉴权缺失 401/403→修订冲突 409→类型伪装 415 且不残留半截文件→引用保护删除→导出/导入往返→重启后 state.json 读回；以及引擎侧：越界钳制、注入清洗、令牌成对补齐、`@font-face`、首屏 CSS、每套预设的 WCAG 对比度、面板暴露的令牌名全部合法
 - **`host.test.mjs`** — 首屏注入行形状；**恶意 `mediaId` 逃不出引号与标签**；视频脚本逐条生成属性、不提前闭合 `</script>`；无 `webServer` 的 CLI/ACP 组合里安静跳过；`ctx.get('connection')` 接线后写请求过会话闸（写口令取自首屏注入行，双闸按真实装配顺序叠加生效）
