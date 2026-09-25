@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   dsh-theme-studio 卸载脚本：移除 profile 里的插件行，可选清理数据目录。
@@ -9,7 +9,7 @@
 #>
 [CmdletBinding()]
 param(
-  [string]$Profile = 'web',
+  [string]$Profile = 'desktop',
   [switch]$PurgeData
 )
 
@@ -51,4 +51,4 @@ if ($PurgeData) {
 }
 
 Write-Host ''
-Write-Host "记得重启宿主让改动生效（桌面端重启应用 / CLI 重启 dsh web）。" -ForegroundColor Cyan
+Write-Host "记得重启应用让改动生效（桌面端 Host 半只在启动时装载）。" -ForegroundColor Cyan

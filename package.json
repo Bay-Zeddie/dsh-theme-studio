@@ -31,9 +31,9 @@
   ],
   "scripts": {
     "build:client": "node tools/build-client.mjs",
-    "check": "node --check index.js && node --check client.js && node --check lib/engine.js && node --check lib/store.js && node --check lib/http.js",
+    "check": "node --check index.js && node --check client.js && node --check lib/engine.js && node --check lib/store.js && node --check lib/http.js && node --check lib/sniff.js && node --check lib/image-size.js && node --check lib/color-core.js",
     "typecheck": "node tools/typecheck.mjs",
-    "test": "node tools/build-client.mjs --check && node --check index.js && node --check client.js && node --test --test-force-exit --test-concurrency=1 test/theme-studio.test.mjs test/host.test.mjs test/client.test.mjs test/regression.test.mjs test/audit-fixes.test.mjs test/audit-bundle.test.mjs && node tools/typecheck.mjs && node tools/verify-bundle.mjs && node tools/integration-check.mjs"
+    "test": "node tools/build-client.mjs --check && node --check index.js && node --check client.js && node --test --test-force-exit --test-concurrency=1 test/theme-studio.test.mjs test/host.test.mjs test/client.test.mjs test/regression.test.mjs test/audit-fixes.test.mjs test/audit-bundle.test.mjs test/audit-desktop.test.mjs && node tools/typecheck.mjs && node tools/verify-bundle.mjs && node tools/integration-check.mjs"
   },
   "dsh": {
     "id": "dsh-theme-studio",
@@ -111,5 +111,9 @@
   "homepage": "https://github.com/Bay-Zeddie/dsh-theme-studio#readme",
   "bugs": {
     "url": "https://github.com/Bay-Zeddie/dsh-theme-studio/issues"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.14",
+    "typescript": "^7.0.2"
   }
 }
