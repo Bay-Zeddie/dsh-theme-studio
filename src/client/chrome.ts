@@ -128,6 +128,11 @@ import { rgba } from '../../lib/color-core.js'
           '[role="dialog"], .dsh-agent-dialog, .dsh-agent-modal-card{'
           + 'background-color:rgba(16,20,24,.32)!important;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
+          /* 嵌套确认框例外（Agent 身份与指令的「切换」确认）：它渲染在设置
+             模态卡内部，卡片的 backdrop-filter 把它的取景圈住，blur 失效 ——
+             0.32 压不住背后密集的设置文字（主人实测仍透）。单独抬到 0.72：
+             小弹窗、背后信息密集，实底优先。声明排在族规则之后：同特异性源序取胜。 */
+          '.dsh-agent-dialog{background-color:rgba(16,20,24,.72)!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'

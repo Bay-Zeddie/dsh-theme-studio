@@ -1201,6 +1201,7 @@ window.__ModuleLoader__.load({
 			".lc-root .lc-card, .lc-modal-card{backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}",
 			"body.dts-on [data-dockkit-pane], body.dts-on [data-dockkit-float]{background:rgba(16,20,24,.28)!important;backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}",
 			"[role=\"dialog\"], .dsh-agent-dialog, .dsh-agent-modal-card{background-color:rgba(16,20,24,.32)!important;backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}",
+			".dsh-agent-dialog{background-color:rgba(16,20,24,.72)!important}",
 			".dts-range{display:flex;align-items:center;gap:8px}",
 			".dts-range input[type=\"range\"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}",
 			".dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary,#6d7480);text-align:right}",
