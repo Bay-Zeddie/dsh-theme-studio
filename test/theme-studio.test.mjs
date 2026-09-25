@@ -582,3 +582,18 @@ describe('主题引擎', () => {
     assert.equal(fontFamilyFor({ id: 'abcdef123456789.png' }), 'DTS-abcdef12')
   })
 })
+
+after(() => {
+  // 收尾排干连接池：fetch/http 的 keep-alive 连接会让 close 悬挂，
+  // --test-force-exit 强杀与句柄关闭赛跑，Windows 上撞 libuv 的
+  // UV_HANDLE_CLOSING 断言（文件被误标失败，用例本身全绿）。
+  // 直接销毁所有指向远端的存活 socket —— stdout/stderr/IPC 没有
+  // remoteAddress，不会误伤。
+  for (const handle of process._getActiveHandles()) {
+    if (handle?.constructor?.name === 'Socket'
+      && typeof handle.remoteAddress === 'string' && handle.remoteAddress !== ''
+      && typeof handle.destroy === 'function') {
+      handle.destroy()
+    }
+  }
+})
