@@ -110,6 +110,11 @@ import { rgba } from '../../lib/color-core.js'
           'span[class$="_root"]:has(button[class$="_trigger"][aria-haspopup="dialog"])'
           + '{background:rgba(16,20,24,.15)!important;border-radius:16px;padding:4px 8px;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
+          /* dsh-context 洞察面板卡片（.lc-card / 模态卡）：底色走 --dsw-alias-bg-layer-1，
+             被玻璃重铸成低不透明度后没有 blur 跟进 —— 全屏看洞察数据时会话文字从
+             卡片背后透出来（主人实测）。补输入卡同款磨砂。只覆盖样式，不动其源码。 */
+          '.lc-root .lc-card, .lc-modal-card{'
+          + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'
