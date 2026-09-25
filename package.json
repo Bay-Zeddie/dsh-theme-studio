@@ -1,6 +1,6 @@
 {
   "name": "dsh-theme-studio",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "DeepSeek Harness 主题工坊：给 DSH 界面换背景图片与视频（原画质、带 HTTP Range）、逐令牌改配色、上传自己的字体、玻璃质感、圆角与动效调节、整窗全屏，12 套双模式预设 + 取色器 + 命名方案一键互切。Theme Studio for DeepSeek Harness: image/video backdrops served byte-for-byte with Range, per-token recoloring, custom fonts, glass surfaces and fullscreen.",
   "type": "module",
   "main": "./index.js",
@@ -38,7 +38,7 @@
   "dsh": {
     "id": "dsh-theme-studio",
     "name": "主题工坊",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "permissions": "本机文件读写（$DSH_HOME/theme-studio）、浏览器界面主题与背景、同源 HTTP 路由",
     "bundle": {
       "patch": "./cordis.patch.yml"

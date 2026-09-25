@@ -1272,7 +1272,8 @@ window.__ModuleLoader__.load({
 			".dts-dialog-line{font-size:12px;line-height:1.55;color:var(--dsw-alias-label-secondary,#353638);word-break:break-word}",
 			".dts-dialog-line[data-kind=\"path\"]{font-family:var(--ds-font-family-code,monospace);font-size:11px}",
 			".dts-dialog-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}",
-			"@media (max-width:720px){.dts-row{grid-template-columns:1fr;gap:4px}.dts-token-row{grid-template-columns:1fr}}"
+			"@media (max-width:720px){.dts-row{grid-template-columns:1fr;gap:4px}.dts-token-row{grid-template-columns:1fr}}",
+			"@media (prefers-reduced-motion: reduce){.dts-panel *,.dts-fab,.dts-modal,.dts-modal-card,.dts-modal-mask,.dts-dialog,.dts-scrim,.dts-select-menu,.dts-layer{transition-duration:0s!important;animation-duration:0s!important}}"
 		].join("\n");
 		//#endregion
 		//#region src/client/primitives.ts

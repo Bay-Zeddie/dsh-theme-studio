@@ -325,5 +325,11 @@ import { rgba } from '../../lib/color-core.js'
           '.dts-dialog-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}',
 
           '@media (max-width:720px){.dts-row{grid-template-columns:1fr;gap:4px}.dts-token-row{grid-template-columns:1fr}}',
+
+          // 动效降级：系统声明"减少动态效果"时，自有表面的过渡与入场动画全部归零。
+          // 视频背景的停播由 boot 脚本按同一媒体查询处理（见 index.js bootVideoScript）。
+          '@media (prefers-reduced-motion: reduce){'
+          + '.dts-panel *,.dts-fab,.dts-modal,.dts-modal-card,.dts-modal-mask,.dts-dialog,.dts-scrim,.dts-select-menu,'
+          + '.dts-layer{transition-duration:0s!important;animation-duration:0s!important}}',
         ].join('\n');
 

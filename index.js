@@ -105,6 +105,8 @@ export function bootInjections(store, prefix = PREFIX) {
 /**
  * 视频背景的启动脚本：在插件加载前就把 <video> 挂上，让浏览器立刻开始
  * Range 流式拉流。属性逐条由数据生成，不做任何字符串拼接戏法。
+ * 系统声明"减少动态效果"时（prefers-reduced-motion）不自动播放 ——
+ * 视频停在首帧充当静态背景，素材仍然在、只是不动。
  * @param {object} doc
  * @param {string} prefix
  */
@@ -119,7 +121,7 @@ function bootVideoScript(doc, prefix) {
     'video.setAttribute("preload", "auto");',
     `video.playbackRate = ${String(b.video.playbackRate)};`,
     b.video.autoplay
-      ? 'video.addEventListener("loadeddata", function () { var p = video.play(); if (p && p.catch) { p.catch(function () {}); } }, { once: true });'
+      ? 'video.addEventListener("loadeddata", function () { if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; var p = video.play(); if (p && p.catch) { p.catch(function () {}); } }, { once: true });'
       : '',
   ].filter((line) => line !== '')
   return [
