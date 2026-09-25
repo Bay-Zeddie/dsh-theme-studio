@@ -103,6 +103,13 @@ import { rgba } from '../../lib/color-core.js'
           '[data-composer-stats]{background:rgba(16,20,24,.15)!important;'
           + 'border-radius:16px;padding:4px 12px;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
+          /* 上下文用量表（ContextMeter，"44%" 圆环）：与统计条同排的兄弟控件，
+             同样是"静默透明、hover 填充"的宿主设计 —— 壁纸下消息文字从背后滚过。
+             给同款玻璃与统计条连成一体。子串匹配 _root+_trigger，再要求触发钮
+             带 aria-haspopup=dialog（上下文面板是 dialog 弹层，与 menu/listbox 区分）。 */
+          'span[class$="_root"]:has(button[class$="_trigger"][aria-haspopup="dialog"])'
+          + '{background:rgba(16,20,24,.15)!important;border-radius:16px;padding:4px 8px;'
+          + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'
