@@ -50,7 +50,21 @@ s && [getComputedStyle(s).backgroundColor, getComputedStyle(s).backdropFilter]
 - 主页「创造模式」选择器：底色应与左侧工作区选择器一致（清透，仅 hover 有填充），
   **不得有常驻磨砂暗斑**（menuAnchor 曾被 [class*="menu"] 兜底误伤）。
 
-## 6. 双主题对拍
+## 6. DockKit 面板与弹窗族（系统性兜底抽查）
+
+右侧停靠面板逐个开：文件 / 浏览器 / 终端 / 上下文洞察 —— 面板背后是会话文字，
+**面板内不得读到底层文字**（[data-dockkit-pane] 统一玻璃底 + 磨砂）。
+设置弹窗里的确认框、插件确认框（如 Agent 身份与指令的"切换"）：**背后设置文字
+不得读出**（[role="dialog"] + 插件 dialog 实底 0.88）。
+
+```js
+// 期望：每个 dockkit 面板有背景 + 大模糊
+[...document.querySelectorAll('[data-dockkit-pane], [data-dockkit-float]')]
+  .map((p) => [p.dataset.dockkitPane ?? 'float', getComputedStyle(p).backgroundColor,
+    getComputedStyle(p).backdropFilter])
+```
+
+## 7. 双主题对拍
 
 明暗模式切到浅色 → 重跑 2/3 → 切深色 → 重跑 2/3。**哨兵**：两种模式下几何一致、
 玻璃对比自愈生效（白字主题下表面翻深、diff 块翻深）。

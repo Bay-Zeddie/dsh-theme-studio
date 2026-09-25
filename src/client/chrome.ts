@@ -115,6 +115,17 @@ import { rgba } from '../../lib/color-core.js'
              卡片背后透出来（主人实测）。补输入卡同款磨砂。只覆盖样式，不动其源码。 */
           '.lc-root .lc-card, .lc-modal-card{'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
+          /* —— 系统性兜底：DockKit 停靠面板族（文件/浏览器/终端/上下文洞察…）——
+             宿主设计坐在不透明应用底色上，玻璃化后面板背后就是会话文字
+             （主人实测：文件树/浏览器页整个透字）。按框架钩子 [data-dockkit-*]
+             一次覆盖现有与未来的全部停靠面板，不逐个类名追。 */
+          'body.dts-on [data-dockkit-pane], body.dts-on [data-dockkit-float]{'
+          + 'background:rgba(16,20,24,.65)!important;'
+          + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
+          /* —— 弹窗卡片族：实底，背后一律看不清（宿主 + 插件 + 自家统一）——
+             设置确认框、插件确认框都曾透出底层文字（主人实测）。 */
+          '[role="dialog"], .dsh-agent-dialog, .dsh-agent-modal-card{'
+          + 'background-color:rgba(16,20,24,.88)!important}',
           '.dts-range{display:flex;align-items:center;gap:8px}',
           '.dts-range input[type="range"]{flex:1;accent-color:var(--dsw-alias-brand-primary,#0f1115)}',
           '.dts-range output{min-width:48px;font-size:11.5px;font-variant-numeric:tabular-nums;'
