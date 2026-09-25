@@ -895,9 +895,9 @@ it('回归锁 · 前端契约同步宿主：键盘导航 / 焦点陷阱 / 动效
     'dts-menu-in var(--ds-transition-duration-fast,.1s) var(--ds-ease-in-out,ease)', '下拉开合动画走 fast 档令牌')
   assert.equal(declOf(parsed, '.dts-select-menu', 'border'),
     '1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.08))', '浮层描边走 border-l 令牌（hairline 体系对齐）')
-  // 下拉弹层压正文：高实度挡字 + blur 糊化（0.15 薄玻璃会与背后文字叠读，实测）。
-  assert.equal(declOf(parsed, '.dts-select-menu', 'background'), 'rgba(16,20,24,.88)!important',
-    '下拉弹层必须高实度（0.88）挡住后面的字，不能透')
+  // 下拉弹层压正文：磨砂挡字 + blur 糊化（0.88 实底曾把整体压闷，主人实测回调）。
+  assert.equal(declOf(parsed, '.dts-select-menu', 'background'), 'rgba(16,20,24,.55)!important',
+    '下拉弹层保持磨砂半透（0.55 + blur50），背后的字看不清但不发闷')
   assert.equal(declOf(parsed, '.dts-select-menu', 'backdrop-filter'),
     'var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important', '下拉弹层保留 blur 糊化背景（毛玻璃质感）')
   // 原生弹层兜底深色化（color-scheme 是系统弹层唯一可靠外观开关）。
@@ -1153,8 +1153,8 @@ it('回归锁 · 构建版本徽章换玻璃材质（logo 下白斑：底色=lab
   assert.match(declOf(parsed, '[class*="buildVersion"]', 'background'), /button-elevated-fill,/,
     '徽章底色必须换玻璃面且带 fallback，否则白字主题下是纯白小斑')
   const tag = declOf(parsed, '[class*="_tag_"][data-tone="solid"]', 'background')
-  assert.equal(tag, 'rgba(16,20,24,.55)!important',
-    '反相实底标签（「新任务默认」chip）必须换毛玻璃：label-primary 做底在白字主题下是纯白块')
+  assert.equal(tag, 'rgba(16,20,24,.35)!important',
+    '反相实底标签（「新任务默认」chip）必须换毛玻璃：label-primary 做底在白字主题下是纯白块（0.35 + blur50）')
   assert.match(declOf(parsed, '[class*="_tag_"][data-tone="solid"]', 'color'), /label-primary/)
   assert.equal(declOf(parsed, 'select option', 'background'), '#16181d',
     '原生 select 弹层必须换深色实底（系统弹层无 backdrop-filter），否则浅灰弹层很突兀')
@@ -1192,10 +1192,10 @@ it('回归锁 · 次级文字对比自愈 + 交接卡透明/文件展示玻璃�
     assert.equal(declOf(parsed, selector, 'background'), 'transparent!important',
       '交接卡必须透明（:has 文件三件套特征 + 多类名并集），壁纸直接看得清')
   }
-  assert.equal(declOf(parsed, '[class$="_file"]', 'background'), 'rgba(16,20,24,.5)!important',
-    '文件行是玻璃条：看不清壁纸但是是透的')
-  assert.equal(declOf(parsed, '[class$="_preview"]', 'background'), 'rgba(16,20,24,.5)!important',
-    '交接任务文件的展示换成交接卡同款玻璃（透但看不清壁纸）')
+  assert.equal(declOf(parsed, '[class$="_file"]', 'background'), 'rgba(16,20,24,.3)!important',
+    '文件行是玻璃条：看不清壁纸但是是透的（0.3 + blur50）')
+  assert.equal(declOf(parsed, '[class$="_preview"]', 'background'), 'rgba(16,20,24,.3)!important',
+    '交接任务文件的展示换成交接卡同款玻璃（透但看不清壁纸，0.3 + blur50）')
 })
 
 it('回归锁 · 玻璃表面浏览器半兜底：新会话条/聊天气泡不等 Host 重启（「有底不好」实测）', async () => {

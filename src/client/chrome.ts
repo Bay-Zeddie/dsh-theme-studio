@@ -168,7 +168,7 @@ import { rgba } from '../../lib/color-core.js'
           /* 反相实底标签（_tag[data-tone="solid"]）：宿主设计拿 label-primary 做底、
              bg 做字（徽章同款「反相」），白字主题下 = 纯白 chip + 半透明深字，又刺眼
              又看不清（Agent 预设「新任务默认」实测）。换小色块可读档毛玻璃 + 主文字色。 */
-          '[class*="_tag_"][data-tone="solid"]{background:rgba(16,20,24,.55)!important;'
+          '[class*="_tag_"][data-tone="solid"]{background:rgba(16,20,24,.35)!important;'
           + 'color:var(--dsw-alias-label-primary,#fff)!important;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           /* 原生 <select> 弹层：系统弹层吃不到毛玻璃（无 backdrop-filter），用深色
@@ -184,7 +184,7 @@ import { rgba } from '../../lib/color-core.js'
           'select option:checked{background:var(--dsw-alias-brand-primary,#0bcb81);'
           + 'color:var(--dsw-alias-label-primary-foreground,#fff)}',
           /* 文件行：玻璃条（「看不清壁纸但是是透的」）。 */
-          '[class$="_file"]{background:rgba(16,20,24,.5)!important;'
+          '[class$="_file"]{background:rgba(16,20,24,.3)!important;'
           + 'border:1px solid rgba(255,255,255,.08)!important;border-radius:16px;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           /* 非交接类 _card（会话输入卡 ThMjxG_card 等）：设置同款毛玻璃 ——
@@ -206,7 +206,7 @@ import { rgba } from '../../lib/color-core.js'
           + 'border:1px solid rgba(255,255,255,.08)!important;border-radius:16px}',
           /* 交接任务文件的展示（gKjQ0W_preview / diff 预览）：换成交接卡同款玻璃 ——
              看不清壁纸但是是透的（主人钦定），与透明外壳形成层次。 */
-          '[class$="_preview"]{background:rgba(16,20,24,.5)!important;'
+          '[class$="_preview"]{background:rgba(16,20,24,.3)!important;'
           + 'border:1px solid rgba(255,255,255,.08)!important;border-radius:12px;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important}',
           '[class$="_card"] [class$="_header"],[class$="_card"] [class$="_tile"],'
@@ -247,7 +247,7 @@ import { rgba } from '../../lib/color-core.js'
           '.dts-select-caret{flex:none;opacity:.7;font-size:10px;line-height:1}',
           '.dts-select-menu{position:absolute;z-index:2147482100;top:calc(100% + 6px);left:0;right:0;min-width:140px;'
           + 'padding:6px;display:flex;flex-direction:column;gap:2px;'
-          + 'border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.08));border-radius:16px;background:rgba(16,20,24,.88)!important;'
+          + 'border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.08));border-radius:16px;background:rgba(16,20,24,.55)!important;'
           + 'box-shadow:0 12px 32px rgba(0,0,0,.4);color-scheme:dark;'
           + 'backdrop-filter:var(--dsw-menu-backdrop-filter,blur(50px) saturate(150%))!important;'
           + 'animation:dts-menu-in var(--ds-transition-duration-fast,.1s) var(--ds-ease-in-out,ease)}',
@@ -261,7 +261,7 @@ import { rgba } from '../../lib/color-core.js'
           + 'font-size:12.5px;padding:6px 10px;border-radius:9px;cursor:pointer;'
           + 'color:var(--dsw-alias-label-primary,#fff);'
           + 'transition:background-color var(--ds-transition-duration-fast,.1s) var(--ds-ease-in-out,ease)}',
-          '.dts-select-option:hover{background:rgba(38,49,72,.55)}',
+          '.dts-select-option:hover{background:rgba(38,49,72,.35)}',
           '.dts-select-option[data-selected="true"]{background:var(--dsw-alias-brand-primary,#0bcb81);'
           + 'color:var(--dsw-alias-label-primary-foreground,#fff)}',
           '.dts-select-option:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#0f1115);outline-offset:2px}',
