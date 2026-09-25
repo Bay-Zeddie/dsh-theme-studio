@@ -32,20 +32,24 @@
 
 ## 安装
 
+**桌面端（推荐）**：在应用的「插件」页以本地路径安装本目录；或在 profile 的
+`package.json` 里加 `link:` 依赖 + bundles 条目后重启应用。
+
+CLI 宿主（可选）：
+
 ```powershell
-# 开发模式：把本目录 link 进 web profile（路径换成你本机的实际位置）
-dsh plugin --profile web add link:<本插件目录>
+dsh plugin --profile <profile> add link:<本插件目录>
 ```
 
-或一键脚本（含 pnpm 补齐与 profile 备份）：
+或一键脚本（含 pnpm 补齐与 profile 备份，`-Profile` 指定目标 profile）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Profile <profile>
 ```
 
 > **改了 `src/client/*.ts` 才需要构建**：`npm run build:client`（需要 `tsdown`，见「DSH 兼容性」）。`client.js` 是随包发布的产物，直接安装即可用，无需构建工具。
 
-**装完要重启 `dsh web`**：Host 半（HTTP 路由 + 数据目录）只在启动时装载。重启后界面右下角应出现圆形浮动按钮，设置里应出现「主题工坊」独立一页。
+**装完要重启宿主**（桌面端重启应用 / CLI 重启 `dsh web`）：Host 半（HTTP 路由 + 数据目录）只在启动时装载。重启后界面右下角应出现圆形浮动按钮，设置里应出现「主题工坊」独立一页。
 
 卸载：
 
@@ -186,7 +190,7 @@ npm run typecheck      # 只跑类型网
 
 ## 已知限制
 
-- **只在 `dsh web` 下工作。** Electron 外壳没有 HTTP 载体（走 `file://` + IPC），素材路由与状态接口都不存在；此时设置页会给出明确提示，配色仍可用宿主原生外观设置。
+- **桌面端与 CLI 宿主通用。** 桌面端由 Electron 把 `dsh-app://app` 下的 API 与素材请求转发给已认证的 Web Host（`apps/desktop/src/web-document.ts` 的 `forwardWebRequest`，保留 Range 请求头，视频可任意拖动）；宿主的首屏注入（防壁纸闪烁的 boot CSS）经 `collectIndexInjections()` 随启动注入进入桌面首屏。仅当宿主未运行时会给出明确离线提示。
 - **调参有约 220ms 防抖 + 一次本机回环往返。** 因为配色只在宿主算一份 —— 换取"首屏与运行时永不打架"。滑块本身跟手（本地草稿即时显示），落地的视觉效果略滞后。
 - **玻璃质感依赖浏览器实测基准色**（`document.styleSheets` 扫描 + `getComputedStyle` 兜底）。宿主若把样式表搬进跨源链接表，退化为"只保证当前模式准确"。
 - **不覆盖组件自己 inline 声明的变量**（正文宽度即属此类），所以没做对应旋钮。

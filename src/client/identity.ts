@@ -14,8 +14,7 @@
         export var MODAL_HOST_ID = 'dts-modal-host';
         export var DEFAULT_PREFIX = '/dsh-theme-studio';
         /**
-         * 玻璃表面兜底清单：Host 的 glassSurfaces 是权威源，但随 dsh web 启动装载
-         * （改它要重启）。这几位"有底不好"的高频表面在浏览器半自带一份补集，
+         * 玻璃表面兜底清单：Host 的 glassSurfaces 是权威源，但随宿主启动装载（桌面端 / CLI 同一装载路径，改它要重启）。
          * 刷新即生效：新会话条（button-elevated-fill）与聊天气泡（specific-bubble）。
          */
         export var EXTRA_GLASS_SURFACES = [

@@ -1,6 +1,6 @@
 # dsh bundle patch：把「主题工坊」插入 profile 的层栈。
-# row 的 name 由 profile 自己的 node_modules 解析
-# （`dsh plugin --profile web add <path>` 安装位置）。
+# row 的 name 由所在 profile 自己的 node_modules 解析
+# （桌面端「插件」页或 CLI `dsh plugin --profile <name> add <path>` 的安装位置）。
 # 浏览器半由 package.json 的 dsh.client 声明自动装载，不需要额外行。
 - insert:
     - id: dsh-theme-studio

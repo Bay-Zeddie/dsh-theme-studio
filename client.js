@@ -14,8 +14,7 @@ window.__ModuleLoader__.load({
 		var MODAL_HOST_ID = "dts-modal-host";
 		var DEFAULT_PREFIX = "/dsh-theme-studio";
 		/**
-		* 玻璃表面兜底清单：Host 的 glassSurfaces 是权威源，但随 dsh web 启动装载
-		* （改它要重启）。这几位"有底不好"的高频表面在浏览器半自带一份补集，
+		* 玻璃表面兜底清单：Host 的 glassSurfaces 是权威源，但随宿主启动装载（桌面端 / CLI 同一装载路径，改它要重启）。
 		* 刷新即生效：新会话条（button-elevated-fill）与聊天气泡（specific-bubble）。
 		*/
 		var EXTRA_GLASS_SURFACES = [
@@ -182,7 +181,7 @@ window.__ModuleLoader__.load({
 				"dialog.deleteBody": "文件会从磁盘移除，使用该素材的主题会失去背景。",
 				"dialog.forceBody": "该素材正被当前主题引用，删除后背景会变空。",
 				"dialog.forceFontBody": "该字体正被字体栈使用，删除后相关文字回退默认字体。",
-				"err.offline": "连不上主题工坊的本地接口：确认界面由 dsh web 提供（Electron 外壳没有 HTTP 载体）。",
+				"err.offline": "连不上主题工坊的本地接口：确认宿主正在运行且主题工坊已加载，然后刷新页面重试。",
 				"err.writeToken": "写口令缺失：刷新页面即可恢复。"
 			},
 			en: {
@@ -316,7 +315,7 @@ window.__ModuleLoader__.load({
 				"dialog.deleteBody": "The file is removed from disk and any theme using it loses its backdrop.",
 				"dialog.forceBody": "The active theme references this material; the backdrop goes empty after deletion.",
 				"dialog.forceFontBody": "This font is used by a font stack; affected text falls back to defaults after deletion.",
-				"err.offline": "Cannot reach the local Theme Studio API: make sure this UI is served by dsh web (the Electron shell has no HTTP carrier).",
+				"err.offline": "Cannot reach the local Theme Studio API: make sure the host is running with Theme Studio loaded, then reload the page.",
 				"err.writeToken": "Missing write token: reload the page to restore it."
 			}
 		};

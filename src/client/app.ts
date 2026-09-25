@@ -215,7 +215,7 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
             if (typeof projection.writeToken === 'string' && projection.writeToken !== '') writeToken = projection.writeToken;
             var doc = projection.doc;
             var pairs = fillTokenPairs(projection.tokenLayers || {}, probe);
-            // Host 的 glassSurfaces 是权威源但随 dsh web 启动装载 ——
+            // Host 的 glassSurfaces 是权威源但随宿主启动装载（桌面端 / CLI 同一路径）——
             // 浏览器半自带高频表面兜底（新会话条/聊天气泡），刷新即透明，不等重启。
             var surfaces = (projection.glassSurfaces || []).slice();
             EXTRA_GLASS_SURFACES.forEach(function (name) {

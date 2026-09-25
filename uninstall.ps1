@@ -51,4 +51,4 @@ if ($PurgeData) {
 }
 
 Write-Host ''
-Write-Host "记得重启 dsh web 让改动生效。" -ForegroundColor Cyan
+Write-Host "记得重启宿主让改动生效（桌面端重启应用 / CLI 重启 dsh web）。" -ForegroundColor Cyan
