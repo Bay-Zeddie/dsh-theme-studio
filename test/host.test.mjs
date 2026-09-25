@@ -235,6 +235,55 @@ describe('apply(ctx) 装配', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it('ctx.get(connection) 接线：会话闸拒绝写请求，口令取自首屏注入行（双闸真实装配顺序）', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dts-apply-'))
+    const previous = process.env.DSH_THEME_STUDIO_HOME
+    process.env.DSH_THEME_STUDIO_HOME = root
+    try {
+      const routes = []
+      const events = []
+      let seen = null
+      const connection = { requestRejection: (request) => { seen = request; return 403 } }
+      const ctx = {
+        logger: { info() {}, warn() {}, error() {} },
+        effect(fn) { fn() },
+        on(event, handler) { events.push({ event, handler }); return () => {} },
+        // index.js 在 apply 顶层 safeGet(ctx, 'connection')：外层 ctx 的 get 必须能取到服务。
+        get: (name) => (name === 'connection' ? connection : undefined),
+        inject(names, fn) {
+          if (names.includes('webServer')) {
+            fn(Object.assign({}, ctx, { webServer: { register(route) { routes.push(route); return () => {} } } }))
+          }
+        },
+      }
+      hostApply(ctx)
+      await tick(60)
+
+      // 写口令走首屏注入行 —— 与页面拿到口令是同一条通路，证明双闸在真实装配顺序下叠加生效。
+      const inject = events.find((item) => item.event === 'webserver/index-inject')
+      assert.ok(inject, '应订阅 webserver/index-inject')
+      const table = []
+      inject.handler(table)
+      const token = table[0].value.writeToken
+      assert.ok(typeof token === 'string' && token.length >= 16)
+
+      const res = makeCapturableResponse()
+      await routes[0].handler({
+        method: 'PUT',
+        url: '/dsh-theme-studio/api/state',
+        headers: { 'content-type': 'application/json', 'x-dts-key': token },
+      }, res)
+      assert.equal(res.statusCode, 403, '写口令正确但会话闸拒绝 → 403')
+      assert.match(res.chunks.join(''), /浏览器会话未通过/)
+      assert.equal(seen.method, 'PUT')
+      assert.equal(seen.url, '/dsh-theme-studio/api/state')
+    } finally {
+      if (previous === undefined) delete process.env.DSH_THEME_STUDIO_HOME
+      else process.env.DSH_THEME_STUDIO_HOME = previous
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })
 
 /** 最小 ServerResponse 替身，够 http.js 用到的面。 */

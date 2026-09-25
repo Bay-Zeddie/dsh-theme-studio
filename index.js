@@ -107,7 +107,7 @@ export function bootInjections(store, prefix = PREFIX) {
  * Range 流式拉流。属性逐条由数据生成，不做任何字符串拼接戏法。
  * 系统声明"减少动态效果"时（prefers-reduced-motion）不自动播放 ——
  * 视频停在首帧充当静态背景，素材仍然在、只是不动。
- * @param {object} doc
+ * @param {any} doc
  * @param {string} prefix
  */
 function bootVideoScript(doc, prefix) {
@@ -165,7 +165,9 @@ export function apply(ctx) {
     },
   )
 
-  // webServer 缺席（CLI/ACP 组合）时整段自动跳过——本插件只服务浏览器界面。
+  // webServer 缺席（CLI/ACP 组合）时整段自动跳过。桌面端是唯一目标部署：
+  // Electron 把 dsh-app://app 下的请求转发给这里的内嵌 Web Host（转发时会剥掉
+  // Host/Origin 头），设置页与浮动按钮所在的界面就装载在本插件的 client 半。
   ctx.inject(['webServer'], (web) => {
     web.effect(() => {
       const unregister = web.webServer.register({
@@ -174,9 +176,13 @@ export function apply(ctx) {
         handler: (req, res) => {
           void http.handle(req, res).catch((error) => {
             ctx.logger.error(new Error(`dsh-theme-studio: 路由处理异常：${String(error?.message ?? error)}`))
-            if (!res.headersSent) {
-              res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+            // 头已发（流式中途抛错）就别往 body 里追加 JSON 了 —— 那会拼出一个
+            // 长度对不上的坏响应；直接断开让客户端按网络错误处理。
+            if (res.headersSent) {
+              res.destroy()
+              return
             }
+            res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
             res.end(JSON.stringify({ ok: false, error: { message: 'theme-studio internal error' } }))
           })
         },
