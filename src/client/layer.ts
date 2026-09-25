@@ -78,6 +78,11 @@ import { mediaLookup } from './utils.ts'
             if (video === null || !host.contains(video)) {
               video = document.createElement('video');
               video.className = 'dts-video';
+              // 解码失败/404 时不能留一块死黑：退回 CSS 层（渐变兜底）。
+              video.addEventListener('error', function () {
+                if (video === null || video.error === null) return;
+                showCssLayer();
+              }, { once: true });
               host.appendChild(video);
             }
             var v = doc.backdrop.video;

@@ -1,7 +1,6 @@
 // src/client/primitives.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
 import { P, e } from './deps.ts'
-import { Row } from './tabs.ts'
 
         /* ============================================================ */
         /* 官方控件适配：缺失时退回等价原生元素                             */

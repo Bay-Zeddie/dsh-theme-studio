@@ -461,7 +461,13 @@ window.__ModuleLoader__.load({
 			if (fn === null) return null;
 			const parts = fn[2].split(/[\s,/]+/).filter(Boolean);
 			if (parts.length < 3) return null;
-			const nums = parts.slice(0, 3).map((token) => Number.parseFloat(token));
+			const isHsl = fn[1].startsWith("hsl");
+			const nums = parts.slice(0, 3).map((token, index) => {
+				const n = Number.parseFloat(token);
+				if (Number.isNaN(n)) return NaN;
+				if (!token.endsWith("%")) return n;
+				return isHsl && index > 0 ? n : n / 100 * 255;
+			});
 			if (nums.some(Number.isNaN)) return null;
 			const rgb = fn[1] === "rgb" || fn[1] === "rgba" ? {
 				r: nums[0],
@@ -638,7 +644,8 @@ window.__ModuleLoader__.load({
 		}
 		function useSlice(store) {
 			var read = useCallback(store.get, [store]);
-			return useSyncExternalStore(useCallback(store.subscribe, [store]), read, read);
+			var subscribe = useCallback(store.subscribe, [store]);
+			return useSyncExternalStore(subscribe, read, read);
 		}
 		//#endregion
 		//#region src/client/probe-glass.ts
@@ -871,7 +878,11 @@ window.__ModuleLoader__.load({
 				return Object.assign({ "x-dts-key": getToken() || "" }, extra || {});
 			}
 			function unwrap(response) {
-				return response.json().then(function(body) {
+				return response.json().catch(function() {
+					var parseError = /* @__PURE__ */ new Error("HTTP " + String(response.status));
+					parseError.status = response.status;
+					throw parseError;
+				}).then(function(body) {
 					if (body && body.ok === true) return body.value;
 					var message = body && body.error && body.error.message || "HTTP " + response.status;
 					var error = new Error(message);
@@ -883,14 +894,15 @@ window.__ModuleLoader__.load({
 				getState: function() {
 					return fetch(url("/api/state"), { cache: "no-store" }).then(unwrap);
 				},
-				saveDoc: function(doc, expectRevision) {
+				saveDoc: function(doc, expectRevision, signal) {
 					return fetch(url("/api/state"), {
 						method: "PUT",
 						headers: headers({ "content-type": "application/json" }),
 						body: JSON.stringify({
 							doc,
 							expectRevision
-						})
+						}),
+						signal
 					}).then(unwrap);
 				},
 				preset: function(id) {
@@ -1048,6 +1060,10 @@ window.__ModuleLoader__.load({
 				if (video === null || !host.contains(video)) {
 					video = document.createElement("video");
 					video.className = "dts-video";
+					video.addEventListener("error", function() {
+						if (video === null || video.error === null) return;
+						showCssLayer();
+					}, { once: true });
 					host.appendChild(video);
 				}
 				var v = doc.backdrop.video;
@@ -1263,7 +1279,7 @@ window.__ModuleLoader__.load({
 			".dts-fab:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(38,49,72,.06));transform:translateY(-1px)}",
 			".dts-fab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#0f1115);outline-offset:2px}",
 			".dts-fab svg{flex:none}",
-			".dts-fab[data-hidden=\"true\"]{opacity:0;pointer-events:none}",
+			".dts-fab[data-hidden=\"true\"]{opacity:0;pointer-events:none;visibility:hidden;transition:opacity var(--ds-transition-duration,.2s) var(--ds-ease-in-out,ease),transform var(--ds-transition-duration,.2s) var(--ds-ease-in-out,ease),visibility 0s linear var(--ds-transition-duration,.2s)}",
 			".dts-modal-mask{position:fixed;inset:0;z-index:2147482001;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--dsw-alias-bg-mask-1,rgba(0,0,0,.24));backdrop-filter:var(--dsw-mask-blur,blur(2px))}",
 			".dts-modal-card{display:flex;flex-direction:column;width:min(980px,100%);max-height:min(88vh,900px);overflow:auto;padding:18px 20px 16px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);box-shadow:var(--dsw-elevation-prominent,0 0 1px rgba(0,0,0,.2),0 12px 32px rgba(0,0,0,.08))}",
 			".dts-scrim{position:fixed;inset:0;z-index:2147482010;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--dsw-alias-bg-mask-3,rgba(0,0,0,.48))}",
@@ -1624,6 +1640,7 @@ window.__ModuleLoader__.load({
 						props.onDone(true);
 					} else if (event.key === "Tab") {
 						event.preventDefault();
+						event.stopPropagation();
 						var nodes = cardRef.current && typeof cardRef.current.querySelectorAll === "function" ? Array.prototype.slice.call(cardRef.current.querySelectorAll("button")) : [];
 						if (nodes.length === 0) return;
 						var at = nodes.indexOf(document.activeElement);
@@ -1802,11 +1819,10 @@ window.__ModuleLoader__.load({
 				var done = 0;
 				list.reduce(function(chain, file) {
 					return chain.then(function() {
-						return env.upload(file).then(function() {
+						return env.upload(file).then(function(value) {
 							done += 1;
-						}, function(error) {
-							env.notify(tt("common.failed") + "：" + String(error.message || error), "error");
-						});
+							return value;
+						}, function() {});
 					});
 				}, Promise.resolve()).then(function() {
 					busy[1]("");
@@ -2375,16 +2391,17 @@ window.__ModuleLoader__.load({
 					value: filter[0],
 					"aria-label": tt("color.groups"),
 					onChange: function(event) {
-						filter[1](event.target.value.trim());
+						filter[1](event.target.value);
 					}
 				}), ContrastReadout({
 					env,
 					t: tt,
 					scheme
 				})), groups.map(function(group) {
+					var needle = filter[0].trim().toLowerCase();
 					var rows = group.tokens.filter(function(item) {
-						if (filter[0] === "") return true;
-						return item.name.indexOf(filter[0]) >= 0 || String(item.label || "").indexOf(filter[0]) >= 0;
+						if (needle === "") return true;
+						return item.name.toLowerCase().indexOf(needle) >= 0 || String(item.label || "").toLowerCase().indexOf(needle) >= 0;
 					});
 					if (rows.length === 0) return null;
 					return e("div", { key: group.id }, e("h4", {
@@ -2514,6 +2531,15 @@ window.__ModuleLoader__.load({
 				});
 			})));
 		}
+		/** 字体采用 pill 的开合语义：已采用再点 = 恢复宿主默认（曾会重复前置同名族）。 */
+		function toggleFamily(doc, family, field) {
+			var quoted = "\"" + family + "\"";
+			if (String(doc.type[field]).indexOf(family) >= 0) {
+				doc.type[field] = "";
+				return;
+			}
+			doc.type[field] = quoted + ", " + (field === "codeFont" ? "monospace" : doc.type[field] || "sans-serif");
+		}
 		function TypeTab(props) {
 			var env = props.env, tt = props.t, doc = props.doc;
 			var families = doc.type.families || [];
@@ -2595,7 +2621,7 @@ window.__ModuleLoader__.load({
 						active: doc.type.uiFont.indexOf(family.family) >= 0,
 						onClick: function() {
 							env.patch(function(d) {
-								d.type.uiFont = "\"" + family.family + "\", " + (d.type.uiFont || "sans-serif");
+								toggleFamily(d, family.family, "uiFont");
 							});
 						},
 						children: tt("type.useFamily")
@@ -2603,7 +2629,7 @@ window.__ModuleLoader__.load({
 						active: doc.type.codeFont.indexOf(family.family) >= 0,
 						onClick: function() {
 							env.patch(function(d) {
-								d.type.codeFont = "\"" + family.family + "\", monospace";
+								toggleFamily(d, family.family, "codeFont");
 							});
 						},
 						children: tt("type.useCodeFamily")
@@ -3136,6 +3162,22 @@ window.__ModuleLoader__.load({
 			}, function() {
 				return writeToken;
 			});
+			/** 在飞提交的中止句柄与代次：整份替换（应用方案/导入/重置）时中止并作废，
+			*  否则旧草稿的 PUT 落在 load 之后（并行连接下时序不保）会把刚载入的
+			*  文档整个盖回服务端。 */
+			var commitAbort = null;
+			var commitEpoch = 0;
+			function cancelPendingCommit() {
+				commitEpoch += 1;
+				window.clearTimeout(commitTimer);
+				if (commitAbort !== null) {
+					var controller = commitAbort;
+					commitAbort = null;
+					try {
+						controller.abort();
+					} catch (err) {}
+				}
+			}
 			function liveSchemeNow() {
 				return document.body.hasAttribute("data-ds-dark-theme") ? "dark" : "light";
 			}
@@ -3188,6 +3230,16 @@ window.__ModuleLoader__.load({
 				});
 				lastAppliedRevision = projection.revision;
 			}
+			/**
+			* 整份文档替换（预设/载入方案/导入/重置）的唯一入口：先作废本地草稿
+			* 与在飞提交。直接调 accept 的话，~220ms 后 commit 会把旧草稿
+			* PUT 回服务端，刚载入的主题被打回原形（实测）。
+			*/
+			function acceptRemote(projection) {
+				cancelPendingCommit();
+				draft = null;
+				accept(projection);
+			}
 			function patch(mutate, options) {
 				var current = engine.get().doc;
 				if (current === null) return;
@@ -3208,10 +3260,43 @@ window.__ModuleLoader__.load({
 				var delay = options && options.debounce ? options.debounce : 220;
 				commitTimer = window.setTimeout(commit, delay);
 			}
+			/** 暂态失败（网络闪断/5xx）的自动重试：指数退避，给上限，不让编辑悄悄蒸发。 */
+			var commitRetries = 0;
+			function commitFailure(epoch, inflight, error) {
+				if (epoch !== commitEpoch) return;
+				commitAbort = null;
+				engine.update({
+					status: "error",
+					error: String(error.message || error)
+				});
+				if (error.status === 409 || error.status === 401) {
+					if (draft !== null && draft !== inflight) reload().then(function() {
+						if (draft !== null) {
+							draft.baseRevision = engine.get().revision;
+							scheduleCommit({ debounce: 50 });
+						}
+					});
+					else {
+						draft = null;
+						commitRetries = 0;
+						reload();
+					}
+					return;
+				}
+				commitRetries += 1;
+				if (commitRetries <= 5) scheduleCommit({ debounce: 800 * commitRetries });
+			}
 			function commit() {
 				if (draft === null) return;
 				var inflight = draft;
-				api.saveDoc(inflight.doc, inflight.baseRevision).then(function(projection) {
+				var epoch = commitEpoch;
+				var controller = typeof AbortController === "function" ? new AbortController() : null;
+				commitAbort = controller;
+				api.saveDoc(inflight.doc, inflight.baseRevision, controller === null ? void 0 : controller.signal).then(function(projection) {
+					if (epoch !== commitEpoch) return;
+					commitAbort = null;
+					commitRetries = 0;
+					if (lastAppliedRevision >= 0 && projection.revision < lastAppliedRevision) return;
 					if (draft === inflight) {
 						draft = null;
 						accept(projection);
@@ -3221,14 +3306,7 @@ window.__ModuleLoader__.load({
 					accept(projection);
 					scheduleCommit();
 				}, function(error) {
-					engine.update({
-						status: "error",
-						error: String(error.message || error)
-					});
-					if (error.status === 409 || error.status === 401) {
-						draft = null;
-						reload();
-					}
+					commitFailure(epoch, inflight, error);
 				});
 			}
 			function reload() {
@@ -3242,6 +3320,7 @@ window.__ModuleLoader__.load({
 			}
 			function openDialog(spec) {
 				return new Promise(function(resolve) {
+					if (typeof dialogAnswer === "function") dialogAnswer(false);
 					dialogAnswer = resolve;
 					engine.update({ dialog: spec });
 				});
@@ -3282,8 +3361,9 @@ window.__ModuleLoader__.load({
 					tone: "danger"
 				}).then(function(yes) {
 					if (!yes) return void 0;
+					cancelPendingCommit();
 					draft = null;
-					return api.saveDoc({}).then(accept, function(error) {
+					return api.saveDoc({}, engine.get().revision).then(acceptRemote, function(error) {
 						notify(t("common.failed") + "：" + String(error.message || error), "error");
 					});
 				});
@@ -3569,7 +3649,7 @@ window.__ModuleLoader__.load({
 					return engine.get();
 				},
 				patch,
-				accept,
+				accept: acceptRemote,
 				liveScheme: liveSchemeNow,
 				mediaUrl,
 				tokenNames: function() {
@@ -3590,9 +3670,8 @@ window.__ModuleLoader__.load({
 					return contrastRatio(tokens["--dsw-alias-bg-base"] && tokens["--dsw-alias-bg-base"][scheme] || probe.of("--dsw-alias-bg-base", scheme) || (scheme === "dark" ? "#151517" : "#ffffff"), tokens["--dsw-alias-label-primary"] && tokens["--dsw-alias-label-primary"][scheme] || probe.of("--dsw-alias-label-primary", scheme) || (scheme === "dark" ? "#f2f4f8" : "#0f1115"));
 				},
 				applyPreset: function(id) {
-					draft = null;
 					return api.preset(id).then(function(projection) {
-						accept(projection);
+						acceptRemote(projection);
 						notify(t("preset.applied"), "ok");
 					}, function(error) {
 						notify(t("common.failed") + "：" + String(error.message || error), "error");
@@ -3643,6 +3722,10 @@ window.__ModuleLoader__.load({
 					var turnedGlassOn = v !== "none" && !doc.glass.enabled;
 					patch(function(d) {
 						d.backdrop.mode = v;
+						if (v === "image" || v === "video") {
+							var item = mediaLookup(engine.get().media, d.backdrop.mediaId);
+							if (d.backdrop.mediaId !== "" && (item === void 0 || item.kind !== v)) d.backdrop.mediaId = "";
+						} else d.backdrop.mediaId = "";
 						if (turnedGlassOn) {
 							d.glass.enabled = true;
 							if (d.glass.alpha > .6) d.glass.alpha = .45;

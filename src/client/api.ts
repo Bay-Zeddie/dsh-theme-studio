@@ -11,7 +11,13 @@
             return Object.assign({ 'x-dts-key': getToken() || '' }, extra || {});
           }
           function unwrap(response) {
-            return response.json().then(function (body) {
+            // 代理页/网关 5xx 的非 JSON 响应别让 response.json() 抛裸 SyntaxError
+            //（"Unexpected token '<'" 直通状态栏）：折成带 status 的干净错误。
+            return response.json().catch(function () {
+              var parseError = new Error('HTTP ' + String(response.status));
+              parseError.status = response.status;
+              throw parseError;
+            }).then(function (body) {
               if (body && body.ok === true) return body.value;
               var message = (body && body.error && body.error.message) || ('HTTP ' + response.status);
               var error = new Error(message);
@@ -21,11 +27,12 @@
           }
           return {
             getState: function () { return fetch(url('/api/state'), { cache: 'no-store' }).then(unwrap) },
-            saveDoc: function (doc: any, expectRevision?: any) {
+            saveDoc: function (doc: any, expectRevision?: any, signal?: any) {
               return fetch(url('/api/state'), {
                 method: 'PUT',
                 headers: headers({ 'content-type': 'application/json' }),
                 body: JSON.stringify({ doc: doc, expectRevision: expectRevision }),
+                signal: signal,
               }).then(unwrap)
             },
             preset: function (id) {

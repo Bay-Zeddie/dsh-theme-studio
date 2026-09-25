@@ -305,7 +305,10 @@ import { rgba } from '../../lib/color-core.js'
           '.dts-fab:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(38,49,72,.06));transform:translateY(-1px)}',
           '.dts-fab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#0f1115);outline-offset:2px}',
           '.dts-fab svg{flex:none}',
-          '.dts-fab[data-hidden="true"]{opacity:0;pointer-events:none}',
+          '.dts-fab[data-hidden="true"]{opacity:0;pointer-events:none;visibility:hidden;'
+            + 'transition:opacity var(--ds-transition-duration,.2s) var(--ds-ease-in-out,ease),'
+            + 'transform var(--ds-transition-duration,.2s) var(--ds-ease-in-out,ease),'
+            + 'visibility 0s linear var(--ds-transition-duration,.2s)}',
 
           '.dts-modal-mask{position:fixed;inset:0;z-index:2147482001;display:flex;align-items:center;'
           + 'justify-content:center;padding:24px;background:var(--dsw-alias-bg-mask-1,rgba(0,0,0,.24));'

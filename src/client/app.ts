@@ -1,6 +1,6 @@
 // src/client/app.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
-import { clamp, contrastRatio, hslToHex, rgbToHsl, rgba } from '../../lib/color-core.js'
+import { clamp, contrastRatio, hslToHex, rgbToHsl } from '../../lib/color-core.js'
 import { createApi } from './api.ts'
 import { CHROME_CSS, exitFullscreen, fullscreenElement, requestFullscreen } from './chrome.ts'
 import { P, ReactDOMClient, e, useState } from './deps.ts'
@@ -194,6 +194,22 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
 
           var api = createApi(function () { return prefix }, function () { return writeToken });
 
+          /** 在飞提交的中止句柄与代次：整份替换（应用方案/导入/重置）时中止并作废，
+           *  否则旧草稿的 PUT 落在 load 之后（并行连接下时序不保）会把刚载入的
+           *  文档整个盖回服务端。 */
+          var commitAbort = null;
+          var commitEpoch = 0;
+
+          function cancelPendingCommit() {
+            commitEpoch += 1;
+            window.clearTimeout(commitTimer);
+            if (commitAbort !== null) {
+              var controller = commitAbort;
+              commitAbort = null;
+              try { controller.abort() } catch (err) { /* 已结束 */ }
+            }
+          }
+
           function liveSchemeNow() {
             return document.body.hasAttribute('data-ds-dark-theme') ? 'dark' : 'light';
           }
@@ -258,6 +274,17 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
             lastAppliedRevision = projection.revision;
           }
 
+          /**
+           * 整份文档替换（预设/载入方案/导入/重置）的唯一入口：先作废本地草稿
+           * 与在飞提交。直接调 accept 的话，~220ms 后 commit 会把旧草稿
+           * PUT 回服务端，刚载入的主题被打回原形（实测）。
+           */
+          function acceptRemote(projection: any) {
+            cancelPendingCommit();
+            draft = null;
+            accept(projection);
+          }
+
           function patch(mutate: any, options?: any) {
             var current = engine.get().doc;
             if (current === null) return;
@@ -275,12 +302,51 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
             commitTimer = window.setTimeout(commit, delay);
           }
 
+          /** 暂态失败（网络闪断/5xx）的自动重试：指数退避，给上限，不让编辑悄悄蒸发。 */
+          var commitRetries = 0;
+          function commitFailure(epoch: any, inflight: any, error: any) {
+            if (epoch !== commitEpoch) return; // 已被整份替换接管：旧提交的失败不得重试/重载
+            commitAbort = null;
+            engine.update({ status: 'error', error: String(error.message || error) });
+            if (error.status === 409 || error.status === 401) {
+              if (draft !== null && draft !== inflight) {
+                // 飞行中又拖了滑块：新草稿不作废 —— 只作废被打回的这一版，
+                // 新草稿以服务端为基准重发。直接清掉会把用户 flight 中的新编辑静默吞掉。
+                void reload().then(function () {
+                  if (draft !== null) {
+                    draft.baseRevision = engine.get().revision;
+                    scheduleCommit({ debounce: 50 });
+                  }
+                });
+              } else {
+                // 冲突或缺写口令：以服务端为准重建，不拿脏文档反复重试。
+                draft = null;
+                commitRetries = 0;
+                void reload();
+              }
+              return;
+            }
+            // 暂态失败：draft 保留（那是用户没保存的编辑），退避后重试；
+            // 重试上限内不自暴自弃 —— 否则一次网络闪断就把实时同步闷死到下次交互。
+            commitRetries += 1;
+            if (commitRetries <= 5) scheduleCommit({ debounce: 800 * commitRetries });
+          }
+
           function commit() {
             if (draft === null) return;
             var inflight = draft;
+            var epoch = commitEpoch;
+            var controller = typeof AbortController === 'function' ? new AbortController() : null;
+            commitAbort = controller;
             // expectRevision 必须随编辑流一起发：不发等于关掉乐观锁，双标签页改同一
             // 主题时后写静默覆盖先写（README 承诺的 409 重读形同虚设，已实证）。
-            api.saveDoc(inflight.doc, inflight.baseRevision).then(function (projection) {
+            api.saveDoc(inflight.doc, inflight.baseRevision, controller === null ? undefined : controller.signal).then(function (projection) {
+              if (epoch !== commitEpoch) return; // 已被整份替换接管：过期响应一律作废
+              commitAbort = null;
+              commitRetries = 0;
+              // 过期投影：提交在飞时用户点了预设/载入了方案（服务端 revision 已更高），
+              // 这份作废 —— 落了它会把旧令牌打回去（响应次序竞争，实测回跳）。
+              if (lastAppliedRevision >= 0 && projection.revision < lastAppliedRevision) return;
               if (draft === inflight) {
                 // 期间没有新改动：草稿作废，回到服务端权威值。
                 draft = null;
@@ -292,14 +358,7 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
               if (draft !== null) draft.baseRevision = projection.revision;
               accept(projection);
               scheduleCommit();
-            }, function (error) {
-              engine.update({ status: 'error', error: String(error.message || error) });
-              if (error.status === 409 || error.status === 401) {
-                // 冲突或缺写口令：以服务端为准重建，不拿脏文档反复重试。
-                draft = null;
-                void reload();
-              }
-            })
+            }, function (error) { commitFailure(epoch, inflight, error) })
           }
 
           function reload() {
@@ -316,6 +375,9 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
 
           function openDialog(spec) {
             return new Promise(function (resolve) {
+              // 已有确认框在飞：把上一个按"取消"收尾。直接覆盖 dialogAnswer 会让
+              // 第一个调用方的 Promise 永远悬挂（泄漏）。
+              if (typeof dialogAnswer === 'function') dialogAnswer(false);
               dialogAnswer = resolve;
               engine.update({ dialog: spec });
             })
@@ -359,8 +421,10 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
               tone: 'danger',
             }).then(function (yes) {
               if (!yes) return undefined;
+              cancelPendingCommit();
               draft = null;
-              return api.saveDoc({}).then(accept, function (error) {
+              // 与其它编辑同一契约：带乐观锁基准，别静默覆盖别的标签页刚存的版本。
+              return api.saveDoc({}, engine.get().revision).then(acceptRemote, function (error) {
                 notify(t('common.failed') + '：' + String(error.message || error), 'error')
               })
             })
@@ -655,7 +719,9 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
             /** 组件每次渲染现读：外层 useSlice 订阅后整棵子树跟着重渲染。 */
             get state() { return engine.get() },
             patch: patch,
-            accept: accept,
+            // 整份文档替换走 acceptRemote（先作废本地草稿与待发提交）：
+            // 方案页「应用」与高级页「导入 JSON」都从这里进去。
+            accept: acceptRemote,
             liveScheme: liveSchemeNow,
             mediaUrl: mediaUrl,
             tokenNames: function () { return probe.names() },
@@ -682,9 +748,8 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
               return contrastRatio(bg, fg);
             },
             applyPreset: function (id) {
-              draft = null;
               return api.preset(id).then(function (projection) {
-                accept(projection);
+                acceptRemote(projection);
                 notify(t('preset.applied'), 'ok');
               }, function (error) { notify(t('common.failed') + '：' + String(error.message || error), 'error') })
             },
@@ -730,6 +795,15 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
               var turnedGlassOn = v !== 'none' && !doc.glass.enabled;
               patch(function (d) {
                 d.backdrop.mode = v;
+                // 换模式时清掉类型不符的 mediaId：图→视频直接切会把图片 id 塞进
+                // <video>（error 后黑屏到底，素材下拉也显示空标签）；切到渐变/无背景
+                // 时也清 —— 否则这块"看不见的素材"的引用会一直留着。
+                if (v === 'image' || v === 'video') {
+                  var item = mediaLookup(engine.get().media, d.backdrop.mediaId);
+                  if (d.backdrop.mediaId !== '' && (item === undefined || item.kind !== v)) d.backdrop.mediaId = '';
+                } else {
+                  d.backdrop.mediaId = '';
+                }
                 if (turnedGlassOn) {
                   d.glass.enabled = true;
                   if (d.glass.alpha > 0.6) d.glass.alpha = 0.45;
@@ -961,7 +1035,7 @@ import { humanBytes, mediaLookup, readLocal, relativeLuminance, writeLocal } fro
                 if (draft !== null) return;
                 void reload();
               });
-              stream.addEventListener('error', function () { /* 断开由轮询兜住 */ });
+              stream.addEventListener('error', function () { /* EventSource 自带指数退避重连，无需另起轮询 */ });
             } catch (err) {
               /* 没有 EventSource：只用轮询 */
             }

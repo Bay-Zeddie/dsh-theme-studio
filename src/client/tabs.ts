@@ -1,7 +1,6 @@
 // src/client/tabs.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
 import { clamp, toHex } from '../../lib/color-core.js'
-import { apply } from './app.ts'
 import { P, React, e, useEffect, useRef, useState } from './deps.ts'
 import { t } from './i18n.ts'
 import { uiButton, uiPill, uiSwitch } from './primitives.ts'
@@ -243,8 +242,10 @@ import { humanBytes, mediaLookup } from './utils.ts'
                 props.onDone(true);
               } else if (event.key === 'Tab') {
                 // 焦点陷阱对齐官方 ImageLightbox（就地核验）：Tab 圈闭在对话框内，
-                // 不允许跑到背后的界面。
+                // 不允许跑到背后的界面。stopPropagation 还要挡住外层模态卡的
+                // 同名陷阱 —— 两个处理器都跑会把一次 Tab 走两步（实测）。
                 event.preventDefault();
+                event.stopPropagation();
                 var nodes = cardRef.current && typeof cardRef.current.querySelectorAll === 'function'
                   ? Array.prototype.slice.call(cardRef.current.querySelectorAll('button')) : [];
                 if (nodes.length === 0) return;
@@ -395,8 +396,10 @@ import { humanBytes, mediaLookup } from './utils.ts'
             list.reduce(function (chain, file) {
               return chain.then(function () {
                 return env.upload(file).then(
-                  function () { done += 1 },
-                  function (error) { env.notify(tt('common.failed') + '：' + String(error.message || error), 'error') })
+                  function (value) { done += 1; return value },
+                  // 失败提示由 env.upload 统一发（曾在这再发一次，一文件双 toast）；
+                  // 这里静默吞掉，让后续文件继续传。
+                  function () { /* already notified */ })
               })
             }, Promise.resolve()).then(function () {
               busy[1]('');
@@ -697,13 +700,15 @@ import { humanBytes, mediaLookup } from './utils.ts'
                 e('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
                   e('input', {
                     className: 'dts-input', placeholder: '--dsw-…', value: filter[0], 'aria-label': tt('color.groups'),
-                    onChange: function (event) { filter[1](event.target.value.trim()) },
+                    // 不过滤输入本身：trim 会让空格永远打不进去；匹配时再收口。
+                    onChange: function (event) { filter[1](event.target.value) },
                   }),
                   ContrastReadout({ env: env, t: tt, scheme: scheme })),
                 groups.map(function (group) {
+                  var needle = filter[0].trim().toLowerCase();
                   var rows = group.tokens.filter(function (item) {
-                    if (filter[0] === '') return true;
-                    return item.name.indexOf(filter[0]) >= 0 || String(item.label || '').indexOf(filter[0]) >= 0;
+                    if (needle === '') return true;
+                    return item.name.toLowerCase().indexOf(needle) >= 0 || String(item.label || '').toLowerCase().indexOf(needle) >= 0;
                   });
                   if (rows.length === 0) return null;
                   return e('div', { key: group.id },
@@ -783,6 +788,16 @@ import { humanBytes, mediaLookup } from './utils.ts'
 
         /* -------------------------------------------------------- 文字页 */
 
+        /** 字体采用 pill 的开合语义：已采用再点 = 恢复宿主默认（曾会重复前置同名族）。 */
+        function toggleFamily(doc: any, family: any, field: any) {
+          var quoted = '"' + family + '"';
+          if (String(doc.type[field]).indexOf(family) >= 0) {
+            doc.type[field] = '';
+            return;
+          }
+          doc.type[field] = quoted + ', ' + (field === 'codeFont' ? 'monospace' : (doc.type[field] || 'sans-serif'));
+        }
+
         export function TypeTab(props) {
           var env = props.env, tt = props.t, doc = props.doc;
           var families = doc.type.families || [];
@@ -825,12 +840,12 @@ import { humanBytes, mediaLookup } from './utils.ts'
                   e('div', { style: { display: 'flex', gap: 4 } },
                     uiPill({
                       active: doc.type.uiFont.indexOf(family.family) >= 0,
-                      onClick: function () { env.patch(function (d) { d.type.uiFont = '"' + family.family + '", ' + (d.type.uiFont || 'sans-serif') }) },
+                      onClick: function () { env.patch(function (d) { toggleFamily(d, family.family, 'uiFont') }) },
                       children: tt('type.useFamily'),
                     }),
                     uiPill({
                       active: doc.type.codeFont.indexOf(family.family) >= 0,
-                      onClick: function () { env.patch(function (d) { d.type.codeFont = '"' + family.family + '", monospace' }) },
+                      onClick: function () { env.patch(function (d) { toggleFamily(d, family.family, 'codeFont') }) },
                       children: tt('type.useCodeFamily'),
                     })))
               }),

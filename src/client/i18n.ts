@@ -1,6 +1,5 @@
 // src/client/i18n.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
-import { apply } from './app.ts'
 import { e } from './deps.ts'
 
         /* ============================================================ */
