@@ -266,6 +266,9 @@
           + '.dts-group>div:last-child>.dts-row:last-child{border-bottom:none}',
           /* 字段行（无 Row 外壳的窄场景：方案名 + 保存按钮）。 */
           '.dts-field-row{display:flex;align-items:flex-end;gap:8px}',
+          /* 输入框行：`align-items:flex-end` 让按钮与 input 底部对齐，但按钮是 `sm`(28px)、
+             TextField 的 input 是 34px ⇒ 一高一矮看着仍然不齐。把行内按钮抬到同高。 */
+          '.dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none}',
           /* ⚠️ 本轮删除：为绕过 `tools/css-modules.mjs` 盐 bug 临时补的
              **Input / TextField 等价皮肤**（旧 `.dts-field-grow>input`、
              `.dts-input-flex>span`、`.dts-input-flex input` 五条规则）。
@@ -394,7 +397,11 @@
           '.dts-card-actions{display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 8px}',
           '.dts-btn--sm{padding:3px 8px;font-size:12px}',
           '.dts-profile-list{display:flex;flex-direction:column;gap:6px}',
-          '.dts-profile-row{align-items:center}',
+          /* ⚠️ profile 行**只有 3 个元素**（名字 | 描述 | 动作），却继承了 `.dts-token-row` 的
+             **4 列**模板（`1.6fr 1fr 1fr auto`）⇒ 动作落到第 3 列、第 4 列整列空着，
+             视觉上就是「右边一大块留白、三列不齐」—— 主人截图里指出的那个"歪"。
+             给它自己的三列：名字按内容宽、描述吃剩余、动作贴右。 */
+          '.dts-token-row.dts-profile-row{grid-template-columns:minmax(0,auto) minmax(0,1fr) auto;align-items:center}',
           '.dts-profile-dot{display:inline-block;width:11px;height:11px;border-radius:50%;corner-shape:round;margin-right:6px;vertical-align:-1px;'
           + 'border:.5px solid var(--dsw-alias-border-l2)}',
           // 官方 Button 的 className 是哈希类名，只能按元素收紧：卡片窄时按钮文字不许折行。
@@ -412,6 +419,9 @@
           '.dts-token-row{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(2,minmax(120px,1fr)) auto;gap:8px;align-items:center}',
           '.dts-token-name{font-family:var(--ds-font-family-code,monospace);font-size:11px;'
           + 'color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+          /* profile 行复用 `.dts-token-name` 时**不该**是等宽 11px（那是给色值/令牌名用的）：
+             行标题按官方行的排版（13/20、中黑），与描述一起构成"标题 + 说明"的左列。 */
+          '.dts-profile-row .dts-token-name{font-family:inherit;font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-primary)}',
           '.dts-pair{display:flex;gap:6px;align-items:center;font-size:11px;'
           + 'color:var(--dsw-alias-label-tertiary);min-width:0}',
           /* 「浅色值/深色值」标签锁宽不参与压缩：曾被 flex 挤到一字宽竖排
@@ -972,7 +982,7 @@
           + '--dts-glass-blur:var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))}',
 
           '@media (max-width:720px){.dts-row{flex-direction:column;align-items:stretch;gap:8px}'
-          + '.dts-row-control{justify-content:flex-start}.dts-token-row{grid-template-columns:1fr}}',
+          + '.dts-row-control{justify-content:flex-start}.dts-token-row,.dts-token-row.dts-profile-row{grid-template-columns:1fr}}',
 
           // 动效降级：系统声明"减少动态效果"时，自有表面的过渡与入场动画全部归零。
           // 视频背景的停播由 boot 脚本按同一媒体查询处理（见 index.js bootVideoScript）。
