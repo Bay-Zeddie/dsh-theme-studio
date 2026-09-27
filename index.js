@@ -167,7 +167,7 @@ export function apply(ctx) {
 
   // webServer 缺席（CLI/ACP 组合）时整段自动跳过。桌面端是唯一目标部署：
   // Electron 把 dsh-app://app 下的请求转发给这里的内嵌 Web Host（转发时会剥掉
-  // Host/Origin 头），设置页与浮动按钮所在的界面就装载在本插件的 client 半。
+  // Host/Origin 头），设置页所在的界面就装载在本插件的 client 半。
   ctx.inject(['webServer'], (web) => {
     web.effect(() => {
       const unregister = web.webServer.register({

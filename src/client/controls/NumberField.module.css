@@ -1,0 +1,69 @@
+/* NumberField.module.css —— 官方 primitives 没有"带标签的数字字段"，
+ * 这份样式抄自官方设置页字段族 lib/settings-form/fields.module.css：
+ *   .field（竖排 gap 6 pad 12 0）、.head（横排 gap 8）、.label（13/500 主色）、
+ *   .input（H34 / pad 0 12 / 0.5px border-l4 / radius-md / bg-layer-3 / 13px / `font: inherit`）、
+ *   .input:focus-visible（不画轮廓，换 business 描边）、.input:disabled（tertiary + default 光标）、
+ *   .input[aria-invalid='true']（换 error 描边）、.invalid（12/1.5 error 色）、.hint（12/1.5 tertiary）。
+ * localName 加 dts 前缀；令牌与字面值都是上面那份文件里的原值。 */
+
+.dtsNumberField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+.dtsNumberFieldHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dtsNumberFieldLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsNumberFieldInput {
+  height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-3);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsNumberFieldInput:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.dtsNumberFieldInput:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.dtsNumberFieldInput[aria-invalid='true'] {
+  border-color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsNumberFieldInvalid {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsNumberFieldHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}

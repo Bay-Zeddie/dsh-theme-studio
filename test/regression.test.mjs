@@ -8,6 +8,8 @@
  *   F  放大倍率被遮罩层吃掉（background-size 值列表层序错位）
  *   G  字体素材删除保护失效（type.fonts 与 type.families 字段错位）
  *   H  usage 外泄服务器绝对路径
+ *   P  第四轮：写面 Origin/Host 全覆盖、上传与主题档穿越、畸形 Range、
+ *       原型键查表、SVG 16 MiB 上限（"已实现却没锁住"的边界补锁）
  *
  * 跑法： node --test test/regression.test.mjs
  */
@@ -19,7 +21,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { ThemeStore, sniffSvg } from '../lib/store.js'
+import { ThemeStore, sniffSvg, SVG_FULL_SCAN_MAX } from '../lib/store.js'
 import { createThemeStudioHttp } from '../lib/http.js'
 import { normalizeDoc, buildCss, buildBootCss, gradientCss, sanitizeCssValue, GLASS_SURFACES, TOKEN_GROUPS } from '../lib/engine.js'
 
@@ -163,10 +165,29 @@ describe('回归锁 G/H · 字体引用、存储口径与族名清洗', () => {
       '设置导航选中态必须玻璃化')
     assert.ok(GLASS_SURFACES.includes('--dsw-specific-sidebar-nav-item-hover'),
       '设置导航悬停态必须玻璃化（「内置插件」白块实测归因）')
+    /* ★ 本轮恢复（2026-09-27）：`--dsw-static-neutral-50/100` 回到清单。
+       它们是宿主 ui-deliverables / ui-schedule 四张「白面卡」局部填充变量
+       （`--changes-fill`/`--deliverable-fill`/`--plan-card-fill`/`--card-fill`）的
+       `var()` 上游，而局部变量声明在**卡片元素自身**上、压过从 body 继承的值
+       （宿主 Presenter 把令牌写成 body 行内样式）—— 所以只有改基元才重铸得到白面；
+       把局部变量名塞进清单是**空操作**（实测）。爆炸半径逐字测过：整份宿主产物里
+       `neutral-50` 共 10 处、`-100` 共 8 处，消费点只有那四个组件 + 一个别名
+       `--dsw-alias-markdown-inline-code`（它本就在清单里、有自己的重铸值）。 */
     assert.ok(GLASS_SURFACES.includes('--dsw-static-neutral-50'),
       '会话结束产出卡的 static 白面必须玻璃化（「已输出 N 个文件」白卡实测归因）')
     assert.ok(GLASS_SURFACES.includes('--dsw-static-neutral-100'),
       '产出卡 hover 白面同源，一并玻璃化')
+    /* ★ 但**基元大族仍然全挡** —— 口径是白名单，不是"前缀放行"。
+       除这两个点名例外，`--dsw-static-*` 一个都不许进（它们是整条色阶的定义处）。 */
+    for (const name of GLASS_SURFACES) {
+      if (name.indexOf('--dsw-static-') !== 0) continue
+      assert.ok(name === '--dsw-static-neutral-50' || name === '--dsw-static-neutral-100',
+        '基元白名单只放行 neutral-50/100，其余 --dsw-static-* 一律不许进：' + name)
+    }
+    for (const name of GLASS_SURFACES) {
+      if (name.indexOf('--dsw-static-') === 0) continue
+      assert.match(name, /^--dsw-(alias|specific)-/, '除基元白名单外只许别名层：' + name)
+    }
     assert.ok(GLASS_SURFACES.includes('--dsw-alias-button-floating-hover'),
       '「新会话」悬停底色必须玻璃化，否则白字主题 hover 时白底白字（实测）')
     assert.ok(GLASS_SURFACES.includes('--dsw-alias-markdown-tag'),
@@ -334,6 +355,215 @@ describe('回归锁 C/D · SVG 入库体检、回吐沙箱与 Host/Origin 闸', 
   })
 })
 
+/**
+ * 第四轮审计补锁：把「已实现但没被任何测试锁住」的边界补上。
+ *   P1 跨站 Origin 只锁了 PUT —— 其余写路由（上传/删除/预设/导入/主题档）逐个锁
+ *   P2 Host 闸只锁了 GET —— 写请求与 SSE 也必须 421
+ *   P3 只读端点逐个确认不回显写口令（不只 /api/state）
+ *   P4 上传 ?name= 路径穿越、主题档 slug 的原型键
+ *   P5 畸形 Range（无法解析 / 反向 / 超大起始）的降级与 416
+ *   P6 SVG 16 MiB 全文体检上限（README 承诺、此前零测试）
+ */
+describe('回归锁 P · 第四轮审计补锁（写面全覆盖 / 穿越 / Range / 原型键 / SVG 上限）', () => {
+  /** @type {{url:string, port:number, close:()=>Promise<void>}} */
+  let server
+  /** @type {ThemeStore} */
+  let store
+  let root
+  let mediaUrlPath
+
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'dts-reg-p-'))
+    // 上限放到 32 MiB：本组要真的撞 16 MiB 的 SVG 上限，1 MiB 的老夹具会先 413。
+    store = new ThemeStore({ root, maxUploadBytes: 32 * 1024 * 1024 })
+    await store.init()
+    const http = createThemeStudioHttp({ store })
+    const node = createServer((req, res) => { void http.handle(req, res) })
+    await new Promise((resolve) => node.listen(0, '127.0.0.1', resolve))
+    server = {
+      url: `http://127.0.0.1:${String(node.address().port)}`,
+      port: node.address().port,
+      close: () => new Promise((resolve) => {
+        node.closeAllConnections?.()
+        node.close(resolve)
+      }),
+    }
+    // 先落一个素材：Range 组要一个真文件，name 穿越组要一次真实上传。
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(64, 0),
+    ])
+    const res = await fetch(`${server.url}/dsh-theme-studio/api/media?name=r.png`, {
+      method: 'POST', headers: { 'x-dts-key': store.writeToken }, body: png,
+    })
+    mediaUrlPath = (await res.json()).value.url
+  })
+
+  after(async () => {
+    await server.close()
+    await rm(root, { recursive: true, force: true })
+  })
+
+  const keyHeaders = () => ({ 'x-dts-key': store.writeToken })
+
+  /** 手写原始请求：fetch 不让碰 Host 头，而 Host 恰好是被测面之一。 */
+  function raw(path, { method = 'GET', headers = {}, body } = {}) {
+    return new Promise((resolve, reject) => {
+      const req = httpRequest({ host: '127.0.0.1', port: server.port, path, method, headers }, (res) => {
+        const chunks = []
+        res.on('data', (chunk) => chunks.push(chunk))
+        res.on('end', () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString('utf8') }))
+      })
+      req.on('error', reject)
+      if (body !== undefined) req.write(body)
+      req.end()
+    })
+  }
+
+  const crossSite = (extra = {}) => ({
+    host: `127.0.0.1:${String(server.port)}`,
+    origin: 'http://attacker.example',
+    'content-type': 'application/json',
+    ...keyHeaders(),
+    ...extra,
+  })
+
+  it('跨站 Origin 覆盖全部写路由（曾只锁 PUT /api/state）', async () => {
+    const writes = [
+      { method: 'POST', path: '/dsh-theme-studio/api/preset', body: '{"id":"deepsea"}' },
+      { method: 'POST', path: '/dsh-theme-studio/api/import', body: '{"doc":{}}' },
+      { method: 'POST', path: '/dsh-theme-studio/api/themes', body: '{"name":"x"}' },
+      { method: 'POST', path: '/dsh-theme-studio/api/themes/load', body: '{"slug":"x"}' },
+      { method: 'DELETE', path: '/dsh-theme-studio/api/themes/x' },
+      { method: 'DELETE', path: `/dsh-theme-studio/api/media/${encodeURIComponent(store.writeToken)}` },
+      { method: 'POST', path: '/dsh-theme-studio/api/media', body: 'not-a-real-image' },
+    ]
+    for (const write of writes) {
+      const res = await raw(write.path, { method: write.method, headers: crossSite(), body: write.body })
+      assert.equal(res.status, 403, `${write.method} ${write.path} 跨站来源必须 403`)
+    }
+  })
+
+  it('Host 闸覆盖写请求与 SSE（曾只锁 GET /api/state）', async () => {
+    const probes = [
+      { method: 'PUT', path: '/dsh-theme-studio/api/state', body: '{"doc":{}}' },
+      { method: 'POST', path: '/dsh-theme-studio/api/preset', body: '{"id":"deepsea"}' },
+      { method: 'POST', path: '/dsh-theme-studio/api/media', body: 'x' },
+      { method: 'GET', path: '/dsh-theme-studio/api/events' },
+      { method: 'GET', path: '/dsh-theme-studio/api/usage' },
+    ]
+    for (const probe of probes) {
+      const res = await raw(probe.path, {
+        method: probe.method,
+        headers: { host: 'attacker.example', 'content-type': 'application/json', ...keyHeaders() },
+        body: probe.body,
+      })
+      assert.equal(res.status, 421, `${probe.method} ${probe.path} 伪造 Host 必须 421`)
+    }
+  })
+
+  it('只读端点一律不回显写口令（不只 /api/state）', async () => {
+    for (const path of ['/api/state', '/api/export', '/api/themes', '/api/usage']) {
+      const res = await fetch(`${server.url}/dsh-theme-studio${path}`)
+      const text = await res.text()
+      assert.ok(!text.includes(store.writeToken), `${path} 不得把写口令吐给无凭据调用方`)
+    }
+  })
+
+  it('上传 ?name= 的路径穿越进不了文件名（落盘路径本就由内容哈希决定）', async () => {
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(32, 0),
+    ])
+    const res = await fetch(`${server.url}/dsh-theme-studio/api/media?name=${encodeURIComponent('../../../evil.png')}`, {
+      method: 'POST', headers: keyHeaders(), body: png,
+    })
+    assert.equal(res.status, 201)
+    const record = (await res.json()).value.media
+    assert.ok(!record.name.includes('/') && !record.name.includes('\\'),
+      `消毒后的素材名不得含路径分隔符：${record.name}`)
+    assert.ok(store.mediaMeta(record.id), '素材应按内容哈希落进索引')
+    assert.ok(!store.absoluteOf(record).includes('..'), `绝对路径不得带点段：${store.absoluteOf(record)}`)
+  })
+
+  it('主题档查表用原型键只报 4xx，不 500', async () => {
+    const load = await fetch(`${server.url}/dsh-theme-studio/api/themes/load`, {
+      method: 'POST', headers: { 'content-type': 'application/json', ...keyHeaders() },
+      body: JSON.stringify({ slug: 'constructor' }),
+    })
+    assert.ok(load.status >= 400 && load.status < 500,
+      `slug=constructor 应是 404 一类的 4xx，实际 ${String(load.status)}`)
+    const del = await fetch(`${server.url}/dsh-theme-studio/api/themes/constructor`, {
+      method: 'DELETE', headers: keyHeaders(),
+    })
+    assert.equal(del.status, 404)
+  })
+
+  it('畸形 Range：无法解析降级 200，反向与超大起始 416', async () => {
+    const ask = async (range) => {
+      const res = await fetch(`${server.url}${mediaUrlPath}`, { headers: { range } })
+      await res.arrayBuffer()
+      return res.status
+    }
+    assert.equal(await ask('bytes=abc'), 200, '无法解析的 Range 按整份 200 降级（RFC 允许）')
+    assert.equal(await ask('bytes= 0-10'), 200, '带空格的写法同样降级，不猜着解析')
+    assert.equal(await ask('bytes=5-1'), 416, '反向区间必须 416，不能吐出 Content-Range: bytes 5-1/N')
+    assert.equal(await ask('bytes=99999999999999999999-'), 416, '天文数字起点（parseInt 溢出到 1e20）必须 416')
+  })
+
+  it('超过 16 MiB 的 SVG 被全文体检上限拒收（README 承诺的边界，此前零测试）', async () => {
+    const before = await store.usage()
+    const huge = '<?xml version="1.0"?>\n<!--'
+      + 'A'.repeat(SVG_FULL_SCAN_MAX)
+      + '--><svg xmlns="http://www.w3.org/2000/svg"></svg>'
+    const res = await fetch(`${server.url}/dsh-theme-studio/api/media?name=huge.svg`, {
+      method: 'POST', headers: keyHeaders(), body: huge,
+    })
+    assert.equal(res.status, 415, '超过 16 MiB 的"壁纸"不是壁纸')
+    const after = await store.usage()
+    assert.equal(after.files, before.files, '被拒的上传不得在 media/ 里留下半截文件')
+  })
+
+  it('客户端自检快照回传：只读 GET /api/state 就能拿到 DOM 现场（皮肤问题的唯一可观测通道）', async () => {
+    const diag = encodeURIComponent(JSON.stringify({
+      body: 'dts-on dsh',
+      chrome: true,
+      chromeLen: 1234,
+      layer: true,
+      section: true,
+      cards: ['ThMjxG_card', '_card_38jqx_9'],
+      hit: { fade: 1, card_: 2, agent: 0, dts: 0, role: 3 },
+    }))
+    const res = await fetch(`${server.url}/dsh-theme-studio/api/state`, { headers: { 'x-dts-diag': diag } })
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.ok(body.value.client, '应带客户端自检')
+    assert.equal(body.value.client.diag.chrome, true, '要能回答"样式注进去了没有"')
+    assert.equal(body.value.client.diag.body, 'dts-on dsh', '要能回答"body 上有没有 dts-on"')
+    assert.equal(body.value.client.diag.section, true, '要能回答"设置页入口落地没有"')
+    assert.deepEqual(body.value.client.diag.cards, ['ThMjxG_card', '_card_38jqx_9'],
+      '要带回宿主卡片类名：这是判定命名约定是哪套的唯一依据')
+    assert.equal(body.value.client.diag.hit.fade, 1)
+    assert.ok(Number.isFinite(body.value.client.lastSeenAt))
+
+    // 白名单收敛：白名单外的字段与超长文本都不许原样带出去。
+    const dirty = encodeURIComponent(JSON.stringify({
+      body: 'x'.repeat(500), secret: 'nope', cards: ['a'.repeat(500), 123],
+    }))
+    const res2 = await fetch(`${server.url}/dsh-theme-studio/api/state`, { headers: { 'x-dts-diag': dirty } })
+    const body2 = await res2.json()
+    assert.equal(body2.value.client.diag.body.length, 200, 'body 必须截断')
+    assert.equal(body2.value.client.diag.secret, undefined, '白名单外的字段必须丢掉')
+    assert.deepEqual(body2.value.client.diag.cards, ['a'.repeat(160)], '卡片项必须是字符串且截断')
+
+    // 坏快照不能把 /api/state 打挂。
+    const res3 = await fetch(`${server.url}/dsh-theme-studio/api/state`, { headers: { 'x-dts-diag': 'not-json' } })
+    assert.equal(res3.status, 200)
+    const body3 = await res3.json()
+    assert.equal(typeof body3.value.client.diag.error, 'string')
+  })
+})
+
 after(() => {
   // 收尾排干连接池：fetch/http 的 keep-alive 连接会让 close 悬挂，
   // --test-force-exit 强杀与句柄关闭赛跑，Windows 上撞 libuv 的
@@ -347,11 +577,4 @@ after(() => {
       handle.destroy()
     }
   }
-})
-
-// 临时调试：列出强杀前仍存活的句柄
-after(() => {
-  const handles = process._getActiveHandles().map((h) => h?.constructor?.name)
-  const reqs = process._getActiveRequests().map((h) => h?.constructor?.name)
-  console.error('[dbg] handles:', JSON.stringify(handles), 'requests:', JSON.stringify(reqs))
 })

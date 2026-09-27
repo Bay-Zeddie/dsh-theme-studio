@@ -1,0 +1,81 @@
+/* Button.module.css —— 逐条抄自官方 lib/Button.module.css。
+ * 改动只有两类：localName 加 `dts` 前缀；每条规则的注释保留原意。
+ * 令牌引用（--dsw-*）一个不动 —— 令牌是唯一允许的共享样式依赖。 */
+
+/* 按钮尺寸共用全局控件圆角阶。 */
+.dtsBtn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  padding: 0 14px;
+}
+
+.dtsBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.dtsBtnMd {
+  height: 36px;
+}
+
+/* 紧凑控件在填充与描边变体下都保持自己的尺寸。 */
+.dtsBtnSm {
+  height: 28px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 10px;
+  border-radius: var(--dsw-radius-sm);
+}
+
+.dtsBtnPrimary {
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
+.dtsBtnPrimary:hover:not(:disabled) {
+  background: var(--dsw-alias-button-primary-hover);
+}
+
+.dtsBtnGhost:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dtsBtnGhost:active:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/* 描边动作与设置页链接共用同一道中性描边。 */
+.dtsBtnOutline {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  background: transparent;
+}
+
+.dtsBtnOutline:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dtsBtnToolbar {
+  background: var(--dsw-alias-button-tool-bar-fill);
+}
+
+.dtsBtnToolbar:hover:not(:disabled) {
+  background: var(--dsw-alias-button-tool-bar-hover);
+}
+
+.dtsBtnIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}

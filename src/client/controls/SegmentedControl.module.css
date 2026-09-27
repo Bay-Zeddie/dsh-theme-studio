@@ -1,0 +1,76 @@
+/* SegmentedControl.module.css —— 逐条抄自官方 lib/SegmentedControl.module.css。
+ * localName 加 dts 前缀；`--dsh-segment-count` / `--dsh-segment-index` 是组件自己发布、
+ * 由 CSS 消费的框架变量，原样保留（指示块的宽度与位移全靠它们算术推导，不量 DOM）。 */
+
+/* 轨道用的就是 hover 态那块半透明填充，于是它读起来像"一个地方"而不是"第二个按钮"；
+ * 唯一被抬起的是指示块 —— 一枚滑到选中段下面的白色胶囊。它的描边走柔和 elevation
+ * 阴影（border: 0），与所有高层级表面画边缘的方式一致。
+ *
+ * 分段是等宽 grid 轨道，宽度由最宽的标签决定，这才让"一个指示块按算术放置"成立：
+ * tablist 带上分段数与选中下标作为自定义属性，指示块据此推导宽度与偏移。 */
+.dtsSegmentedControl {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dtsSegmentedIndicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc((100% - 8px - 2px * (var(--dsh-segment-count) - 1)) / var(--dsh-segment-count));
+  height: calc(100% - 8px);
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: var(--dsw-elevation-soft);
+  transform: translateX(calc(var(--dsh-segment-index) * (100% + 2px)));
+  transition: transform 160ms ease;
+  pointer-events: none;
+}
+
+.dtsSegmentedTab {
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  height: 28px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.dtsSegmentedTab:hover:not(:disabled),
+.dtsSegmentedTab[aria-selected='true'] {
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsSegmentedTab:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.dtsSegmentedTab:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dtsSegmentedIndicator,
+  .dtsSegmentedTab {
+    transition: none;
+  }
+}

@@ -26,7 +26,18 @@
             })
           }
           return {
-            getState: function () { return fetch(url('/api/state'), { cache: 'no-store' }).then(unwrap) },
+            // 带上写口令：Host 只对持口令方回显 writeToken（自证刷新）。不带头 =
+            // 宿主重启轮换口令后客户端永远拿不到新值，只能整页刷新才能再写。
+            // `diag` 是自检快照（URL 编码的紧凑 JSON）：客户端把"样式注进去了没有、
+            // dts-on 在不在、入口落地没有、宿主卡片是哪套命名"回传给 Host，只读
+            // GET /api/state 就能看到 —— 皮肤类问题的第一现场永远在 DOM 里，而
+            // 外部（含维护者）没有任何通道能读到它，只能靠猜。
+            getState: function (diag?: string) {
+              return fetch(url('/api/state'), {
+                cache: 'no-store',
+                headers: diag ? headers({ 'x-dts-diag': diag }) : headers(),
+              }).then(unwrap)
+            },
             saveDoc: function (doc: any, expectRevision?: any, signal?: any) {
               return fetch(url('/api/state'), {
                 method: 'PUT',

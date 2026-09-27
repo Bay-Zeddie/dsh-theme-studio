@@ -501,10 +501,63 @@ describe('主题引擎', () => {
     assert.equal(off['--dsw-alias-link'].light, '#123456')
   })
 
-  it('默认文档的令牌层只含圆角一项（等于宿主默认，不产生视觉噪声）', () => {
+  it('默认文档的令牌层：圆角 + **无条件清零** MenuSurface 填充（零自选色，本轮恢复）', () => {
     const pairs = buildTokenLayers(normalizeDoc({}))
-    assert.deepEqual(Object.keys(pairs), ['--dsw-corner-shape'])
+    /* ★ 本轮恢复（主人复测判定阶段 C/D 的"不再清零"为误判，原话「零自选色，零压暗」）：
+       口径是颜色**全部**交还壁纸、玻璃只负责磨砂。于是 `--dsw-menu-surface-fill` 必须
+       **无条件**清零 —— 它与 chrome.ts 的 --dts-glass-fill:transparent 是同一件事的两半；
+       只恢复一半就会出现"我们自己的面全透明、宿主 MenuSurface 仍是半透明中性填充"的
+       分叉（那正是主人说的"原本的设定缺失"）。
+       代价（主人知情并选择）：blur() 成为**唯一**承担"看不清底字"的机制 —— 所以三处保障
+       必须都在（遮罩不带 bf / 输入卡糊搬进 ::before / role=dialog 显式带糊），见 chrome.ts。 */
+    assert.deepEqual(Object.keys(pairs).sort(),
+      ['--dsw-corner-shape', '--dsw-menu-surface-fill'],
+      '默认文档 = 圆角 + 无条件清零 MenuSurface 填充')
     assert.equal(pairs['--dsw-corner-shape'].light, 'superellipse(1.5)')
+    assert.equal(pairs['--dsw-menu-surface-fill'].light, 'transparent',
+      '零自选色：宿主 MenuSurface 填充必须清零（颜色全部来自壁纸）')
+    assert.equal(pairs['--dsw-menu-surface-fill'].dark, 'transparent', '明暗两侧同值')
+    // 开关关掉 / 没开背景时**也必须**清零：否则 MenuSurface 退回宿主不透明填充，
+    // 弹层又变成一块与壁纸无关的实色板（主人多轮要求消除的东西）。
+    const off = buildTokenLayers(normalizeDoc({ glass: { enabled: false }, backdrop: { mode: 'none' } }))
+    assert.equal(off['--dsw-menu-surface-fill'].light, 'transparent',
+      '清零是无条件的，不许挂在 glass 开关或背景模式上')
+  })
+
+  it('宿主弹层：兜底通道恢复 —— 清底与给糊绑在一起，模糊只走 --dsw-menu-backdrop-filter', () => {
+    // ⚠️ 必须带上 backdrop.mode：模糊令牌的重铸条件与 composeGlass 同源
+    //    （`glass.enabled && backdrop.mode !== 'none'`）—— 没开背景时重铸模糊没有意义，
+    //    那条兜底选择器当年正是因为"没开背景也给宿主挂 50px 模糊"才被删掉的。
+    const doc = normalizeDoc({
+      glass: { enabled: true, alpha: 0.5, blur: 24, saturate: 180 },
+      backdrop: { mode: 'image', fadeOnFocus: true },
+    })
+    const pairs = buildTokenLayers(doc)
+    assert.equal(pairs['--dsw-menu-backdrop-filter'].light, 'blur(24px) saturate(180%)',
+      '玻璃开关开着时模糊公式走令牌重铸（唯一合法来源）')
+    assert.equal(pairs['--dsw-menu-backdrop-filter'].dark, 'blur(24px) saturate(180%)',
+      '明暗两侧同值（模糊不是配色）')
+    // 反向闸：没开背景时**不许**写这个令牌（否则等于给宿主挂模糊，正是被删掉的兜底）。
+    const off = buildTokenLayers(normalizeDoc({ glass: { enabled: true, alpha: 0.5 } }))
+    assert.equal(off['--dsw-menu-backdrop-filter'], undefined,
+      '未开背景时不许重铸模糊令牌')
+    const css = buildCss(doc)
+    /* ★ 本轮恢复：兜底通道回来了 —— 清底**必须**与给糊同时出现，否则"全透明 + 零模糊"
+       比原来的实色板更糟（背后正文直接穿透且没有任何模糊）。 */
+    assert.match(css, /\[role="menu"\], \[role="listbox"\], \[role="dialog"\], \[role="tooltip"\]/,
+      '兜底必须覆盖 role=menu/listbox/dialog/tooltip（官方材料层够不到 dialog/tooltip）')
+    assert.match(css, /background: transparent !important/,
+      '零自选色：兜底必须把宿主底色清成 transparent')
+    assert.match(css, /backdrop-filter: var\(--dsw-menu-backdrop-filter\) !important/,
+      '给糊必须走令牌，不许写字面 blur(Npx)')
+    assert.doesNotMatch(css, /blur\(/, '引擎 CSS 里不许出现字面 blur()（模糊归令牌）')
+    assert.ok(css.indexOf('menuAnchor') !== -1,
+      'menuAnchor 自伤补丁必须与兜底同时在场（子串匹配会打到 AgentPresetSeat 包裹层）')
+    assert.ok(css.indexOf('class*=') !== -1, '兜底选择器照搬副本（子串形态）')
+    // 聚焦淡出：作用域恢复成并集（宿主输入框 + 自家面板），见 engine.js 该处注释。
+    assert.ok(css.indexOf('body:has(textarea') !== -1, '聚焦淡出恢复读宿主输入框（改造前语义）')
+    assert.ok(css.indexOf('.dts-page') !== -1 || css.indexOf('.dts-layer') !== -1,
+      '自家选择器仍在（别把整份 CSS 删空）')
   })
 
   it('字体与动效经令牌层落地，且两侧同值', () => {

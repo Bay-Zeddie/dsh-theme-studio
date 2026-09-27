@@ -6,9 +6,14 @@
   "main": "./index.js",
   "icon": "./icon.svg",
   "exports": {
-    ".": "./index.js",
-    "./client": "./client.js",
+    ".": {
+      "default": "./index.js"
+    },
+    "./client": {
+      "default": "./client.js"
+    },
     "./client.js": "./client.js",
+    "./src/*": "./src/*",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
@@ -17,12 +22,10 @@
     "index.js",
     "client.js",
     "lib/*.js",
-    "tools",
-    "tsdown.theme-studio.config.ts",
-    "tsconfig.client.json",
-    "jsconfig.json",
     "cordis.patch.yml",
     "README.md",
+    "README.zh.md",
+    "README.i18n.yaml",
     "LICENSE",
     "install.ps1",
     "uninstall.ps1",
@@ -33,7 +36,8 @@
     "build:client": "node tools/build-client.mjs",
     "check": "node --check index.js && node --check client.js && node --check lib/engine.js && node --check lib/store.js && node --check lib/http.js && node --check lib/sniff.js && node --check lib/image-size.js && node --check lib/color-core.js",
     "typecheck": "node tools/typecheck.mjs",
-    "test": "node tools/build-client.mjs --check && node --check index.js && node --check client.js && node --test --test-force-exit --test-concurrency=1 test/theme-studio.test.mjs test/host.test.mjs test/client.test.mjs test/regression.test.mjs test/audit-fixes.test.mjs test/audit-bundle.test.mjs test/audit-desktop.test.mjs && node tools/typecheck.mjs && node tools/verify-bundle.mjs && node tools/integration-check.mjs"
+    "test": "node tools/build-client.mjs --check && node --check index.js && node --check client.js && node tools/run-tests.mjs && node tools/typecheck.mjs && node tools/verify-bundle.mjs && node tools/integration-check.mjs",
+    "test:node": "node --test --test-force-exit --test-concurrency=1 test/*.test.mjs"
   },
   "dsh": {
     "id": "dsh-theme-studio",

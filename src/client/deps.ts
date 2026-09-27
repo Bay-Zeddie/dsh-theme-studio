@@ -5,13 +5,14 @@
         /* 依赖装载：react 基座必给；其余取不到就降级                       */
         /* ============================================================ */
 
+        // ⛔ 这里曾经 `require('@deepseek-ai/dsh-client-ui-primitives')` —— 官方规范
+        // （references_practices.md:35）明文禁止插件把 Harness Client 包当模块加载：
+        // 它们随时会变、纯 JS 插件没有类型检查、组件一抛异常整个 slot 条目就白屏。
+        // 控件已自写并落在 ./controls/**（令牌是唯一的共享样式依赖），官方包一个都不 require。
         export var React: any = require('react');
         export var ReactDOMClient: any = null;
-        /** 官方 ui-primitives 句柄（缺失时为空对象，适配层逐个降级）。 */
-        export var P: any = {};
 
         try { ReactDOMClient = require('react-dom/client') || null; } catch (err) { ReactDOMClient = null }
-        try { P = require('@deepseek-ai/dsh-client-ui-primitives') || {} } catch (err) { P = {} }
 
         /**
          * createElement 简写。

@@ -1,0 +1,134 @@
+/* Modal.module.css —— 逐条抄自官方 lib/Modal.module.css。
+ * localName 加 dts 前缀；keyframes 也加前缀（CSS Modules 会一起作用域化）。
+ *
+ * 令牌说明：`--ds-transition-duration` / `--ds-ease-in-out` 不是自造值，它们是
+ * ui-theme base.css 在 `:root` 上发布的两条宿主框架变量（证据：ui-theme/lib/client.js:1142
+ * `:root{...--ds-ease-in-out:cubic-bezier(.4, 0, .2, 1);--ds-transition-duration:.2s;...}`），
+ * 与 `--dsw-*` 同属宿主令牌族，官方 Modal 用的就是这两条。 */
+
+/* 全视口层（figma Mask + Dialog）：四周 24px 空气；上下会加宽到框架发布的顶边净空
+ * （macOS 窗口条），高卡片因此不会贴上去。卡片按这个 padding box 定尺：消费方用
+ * `max-height: 100%` 限制增长，而不要自己算视口。 */
+.dtsModalRoot {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(24px, var(--dsh-frame-top-clearance, 24px)) 24px;
+}
+
+/* 遮罩压暗页面；深色主题抬高它的不透明度。 */
+.dtsModalMask {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: var(--dsw-mask-blur);
+}
+
+.dtsModalMask::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--dsw-alias-bg-mask-1);
+  animation: dtsModalEnter var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+/* 对话框在次级层上使用显眼的 elevation。 */
+.dtsModalDialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: min(380px, 100%);
+  padding: 0 0 24px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--dsw-radius-panel);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
+  animation: dtsModalEnter var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+@keyframes dtsModalEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dtsModalMask::after, .dtsModalDialog { animation: none; }
+}
+
+/* 弹窗容器不画焦点外框（它的 tabIndex=-1 只为承载初始焦点与 Tab 陷阱）。 */
+.dtsModalDialog:focus {
+  outline: none;
+}
+
+.dtsModalContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 头部行（figma Title row）：pad l24/t22/r14/b12，SPACE_BETWEEN —— 标题在左、关闭在右。 */
+.dtsModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 22px 14px 12px 24px;
+}
+
+.dtsModalTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500; /* figma wt510，渲染为 500 */
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsModalClose {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dtsModalClose:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* 描述与正文共用 332px 内容列（两侧 24px 内边距）。 */
+.dtsModalDescription {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsModalBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 20px;
+  padding: 0 24px;
+}
+
+.dtsModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 24px;
+}

@@ -1,0 +1,97 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-theme/README.md
+/:
+  en: 9a31ad92fad1ad72
+  zh: 539390bec778f628
+/dsh-theme-studio:
+  en: 6544d2ebed91b6ad
+  zh: 71de928031405417
+/dsh-theme-studio/summary:
+  en: 7d956cabb2d5e634
+  zh: 7f6dca65b73c837d
+/dsh-theme-studio/table-of-contents:
+  en: 65663b0d5dfa1600
+  zh: f57613f133f85594
+/dsh-theme-studio/use-this-package:
+  en: 6db0a1abffc90a36
+  zh: b119a18bc2849d7d
+/dsh-theme-studio/use-this-package/one-entry-point:
+  en: 648430176f271364
+  zh: cc4909d2ce09d87e
+/dsh-theme-studio/use-this-package/panel-surfaces:
+  en: 037ff0c36058d433
+  zh: 55de58994f9e1afb
+/dsh-theme-studio/use-this-package/data-location:
+  en: ddddce7327d74ea9
+  zh: 7afbaf7d2a866581
+/dsh-theme-studio/use-this-package/fullscreen-button:
+  en: c01ab06319dc6062
+  zh: fce5144cccb6720c
+/dsh-theme-studio/use-this-package/native-quality:
+  en: 573fcb2f848c51e2
+  zh: 70603530f75e7622
+/dsh-theme-studio/understand-the-implementation:
+  en: 81953103ea15dd3c
+  zh: 3aaa8325fb20ecdc
+/dsh-theme-studio/understand-the-implementation/architecture:
+  en: dbbd3f069c149605
+  zh: 63192414d81585ad
+/dsh-theme-studio/understand-the-implementation/token-layers-and-glass:
+  en: 32ffbf89c2b1fda7
+  zh: 6f514826db446953
+/dsh-theme-studio/understand-the-implementation/cross-window-sync:
+  en: eedf368389872cd1
+  zh: 4b589d8961c40c10
+/dsh-theme-studio/understand-the-implementation/client-self-diagnostics:
+  en: ceb8c474bc5fa4f4
+  zh: f593e4c8507e7f7e
+/dsh-theme-studio/understand-the-implementation/self-test:
+  en: 604fc6d95d65921d
+  zh: 490382e1d636285f
+/dsh-theme-studio/further-exploration:
+  en: 52148d6ba261271b
+  zh: d3486131dfc52401
+/dsh-theme-studio/further-exploration/cross-verification-record:
+  en: a810dbdbda00db26
+  zh: ff2e543ff2947d88
+/dsh-theme-studio/further-exploration/audit-conclusions:
+  en: ace09aed9f8a0990
+  zh: 591b1ebbf042256a
+/dsh-theme-studio/further-exploration/glass-investigation:
+  en: e7771a42aa57d596
+  zh: 8588994018554bb5
+/dsh-theme-studio/further-exploration/missed-surface-sweep:
+  en: f156d9bf22ebcc3b
+  zh: 5eb4b9db2d1b7283
+/dsh-theme-studio/further-exploration/panel-overflow:
+  en: 4a17fefaca73afe3
+  zh: 4e64fc3782170c3c
+/dsh-theme-studio/model-experience:
+  en: 2e247f4749910831
+  zh: 76d4c7569a96503f
+/dsh-theme-studio/model-experience/kv-cache-effect:
+  en: a4e6515021121748
+  zh: f4a65ec6e0b91e10
+/dsh-theme-studio/known-limitations-and-deferred-work:
+  en: 255a42f7124eba76
+  zh: 0648ce26ac325cc0
+/dsh-theme-studio/known-limitations-and-deferred-work/security-boundary:
+  en: b26f0009b119419c
+  zh: 5b00277028135383
+/dsh-theme-studio/known-limitations-and-deferred-work/known-limitations:
+  en: 9ab46640b1e02136
+  zh: 9e335a36c6b68c1a
+/dsh-theme-studio/known-limitations-and-deferred-work/dsh-compatibility:
+  en: d6f7942ceb846c42
+  zh: b98c6a7e725a84d2
+/dsh-theme-studio/known-limitations-and-deferred-work/layout:
+  en: 8f150295b190de38
+  zh: 0a4c8d7a08c10fe7
+/dsh-theme-studio/known-limitations-and-deferred-work/dev-note:
+  en: 0b908c6d12fc9fff
+  zh: d2e9948f845e1149
+/dsh-theme-studio/license:
+  en: aad9b93c8b488fac
+  zh: 638cdf869e61d139

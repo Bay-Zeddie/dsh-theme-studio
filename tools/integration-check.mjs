@@ -12,6 +12,9 @@ import { createContext, runInContext } from 'node:vm'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// 剥注释器与官方 9 键基座表与 tools/verify-bundle.mjs 同源共用（避免两侧口径漂移）。
+import { LOADER_BASE_TABLE, requireSpecifiers } from './strip-comments.mjs'
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.argv[2] ?? join(root, 'client.js')
 const code = readFileSync(target, 'utf8')
@@ -33,6 +36,9 @@ function makeElement(tag) {
     id: '',
     children: [],
     attributes: Object.create(null),
+    // 自写控件层的 .module.css 在模块初始化期就 <style data-plugin-css=…> 注入，
+    // 注入代码会写 tag.dataset.plugin / tag.dataset.pluginCss —— 替身必须有 dataset。
+    dataset: Object.create(null),
     style: makeStyle(),
     textContent: '',
     isConnected: true,
@@ -72,6 +78,8 @@ const doc = {
   documentElement: rootEl, head, body, styleSheets: [], visibilityState: 'visible', fullscreenElement: null,
   activeElement: body, createElement: makeElement, getElementById: (id) => byId.get(id) ?? null,
   addEventListener(t, fn) { docEvents.push({ el: doc, type: t, fn }) },
+  // CSS Modules 的幂等注入键：返回 null ⇒ 每个样式表注入一次（与真浏览器首次装载同路径）。
+  querySelector: () => null,
   removeEventListener() {}, querySelectorAll: () => [],
 }
 
@@ -127,7 +135,25 @@ const sandboxGlobal = {
   MutationObserver: function () { this.observe = () => {}; this.disconnect = () => {} },
   fetch: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, value: projection }) }),
   Blob: function () {},
-  React: { createElement: (t, p, ...c) => ({ type: t, props: p, children: c }), cloneElement: (el) => el },
+  // react 替身：自写控件层（src/client/controls/**）在模块初始化期就用 forwardRef / memo
+  // 包组件，所以这两个 API 必须在位；真渲染由宿主负责，这里只保证装载路径不抛。
+  // 阶段 E 起还多了一条用途：背景层的**容器**由 React 渲染（`OverlaySurface` 注册进官方
+  // `shell.overlay` 槽），验"背景层 DOM 存在"就必须真跑一遍那个组件的渲染函数 ——
+  // 于是 hooks 也照最小语义补齐（不是完整调度器，够渲染一次即可）。
+  React: {
+    createElement: (t, p, ...c) => ({ type: t, props: p, children: c }),
+    cloneElement: (el) => el,
+    forwardRef: (render) => render,
+    memo: (render) => render,
+    Fragment: 'Fragment',
+    useState: (init) => [typeof init === 'function' ? init() : init, () => {}],
+    useEffect: () => {},
+    useLayoutEffect: () => {},
+    useRef: (init) => ({ current: init }),
+    useCallback: (fn) => fn,
+    useMemo: (fn) => fn(),
+    useSyncExternalStore: (subscribe, getSnapshot) => getSnapshot(),
+  },
 }
 
 let handoff = null
@@ -166,13 +192,65 @@ check('factory 是函数', typeof handoff.factory === 'function')
 const modules = {
   react: sandboxGlobal.React,
   'react-dom/client': { createRoot: () => ({ render() {}, unmount() {} }) },
-  'react-dom': { render() {}, unmountComponentAtNode: () => true },
-  '@deepseek-ai/dsh-client-ui-primitives': {},
+  // react-dom 是**官方 9 键基座表**里的键，而且是 createPortal 的唯一来源
+  // （React.createPortal 恒 undefined —— 那正是让 MenuSurface/Modal/Toast/Tooltip/Select/Menu
+  // 六件 portal 化控件在真运行时白屏的写法）。createPortal 必须是**真函数**。
+  // ⚠️ 真库的 `createPortal` 是**惰性**的：交回 `{$$typeof: REACT_PORTAL_TYPE, children,
+  // containerInfo}`，落 DOM 发生在 commit 阶段。本替身照此实现（旧替身在"渲染期"就 append，
+  // 把渲染与挂载压成一件事 —— test/client.test.mjs 的四条断言曾因此取不到稳定节点）。
+  // 本文件不模拟 commit：背景层走的是"ref 交容器"那条路，不经过门户；门户落 DOM 那一侧的
+  // 断言在 test/client.test.mjs（commit 模拟）与真机冒烟里。
+  'react-dom': {
+    createPortal: (node, container) => ({
+      $$typeof: Symbol.for('react.portal'),
+      key: null,
+      children: node === undefined ? null : node,
+      containerInfo: container === undefined ? null : container,
+    }),
+    render() {},
+    unmountComponentAtNode: () => true,
+  },
+  // 官方包替身已删除：合规改造后产物不得 require 任何 @deepseek-ai/* 包，
+  // 留着替身就会让"越界 require"这条断言永远为真。
 }
+/** 实际被 require 的 specifier（含重复），供下面的基座表断言核对。 */
+const requested = []
 const exported = handoff.factory((spec) => {
+  requested.push(spec)
   if (spec in modules) return modules[spec]
-  throw new Error(`require 越界：${spec}`)
+  throw new Error(`require 越界（基座表之外）：${spec}`)
 })
+
+/**
+ * 静态口径：产物里**出现的** require 调用点（不看运行时是否走到）。
+ * 剥器与基座表与 tools/verify-bundle.mjs **同源**（tools/strip-comments.mjs）——
+ * 这里再查一遍是为了让"端到端装配"与"静态锁"两侧互相印证（一侧只读文本、一侧真跑装配），
+ * 共用一份剥器则保证两侧口径不会漂移（产物保留注释，注释里也引用了禁用的 require 原文）。
+ */
+const staticRequires = requireSpecifiers(code)
+
+// 运行时口径：本次装配实际执行到的 require。createRoot 在位 ⇒ app.ts 的 ReactDOM.render
+// 退路分支不执行，所以 react-dom 只计 1 次（createPortal 那一处，模块初始化期必执行）。
+check('运行时 require = react×2 / react-dom×1 / react-dom/client×1',
+  [...requested].sort().join('|') === 'react|react|react-dom|react-dom/client',
+  `实际 [${[...requested].sort().join(', ')}]`)
+check('运行时 require 逐项落在官方 9 键基座表内',
+  requested.every((spec) => LOADER_BASE_TABLE.includes(spec)),
+  `表外项 [${requested.filter((spec) => !LOADER_BASE_TABLE.includes(spec)).join(', ')}]`)
+// 静态口径：产物里共 4 个 require 调用点 —— react×2（deps.ts / controls/runtime.ts，
+// 模块初始化期都执行）/ react-dom×1（createPortal 的唯一来源）/ react-dom/client×1（createRoot）。
+// ⚠️ 旧口径是 "react-dom×2"：第 2 条落在 app.ts 的**模态退路分支**里 ——
+// 阶段 E 把模态改成声明式（`ModalHost` + `createPortal`）后那条退路整段删除，
+// 于是这条锁锁住了"已经不存在"的实现。口径与 tools/verify-bundle.mjs 的
+// EXPECTED_REQUIRES（5→4）同步；**锁本身没有放宽**：仍然逐项钉死清单与重复次数。
+check('静态 require 调用点 = react×2 / react-dom×1 / react-dom/client×1',
+  [...staticRequires].sort().join('|') === 'react|react|react-dom|react-dom/client',
+  `实际 [${[...staticRequires].sort().join(', ')}]`)
+check('静态 require 逐项落在官方 9 键基座表内',
+  staticRequires.every((spec) => LOADER_BASE_TABLE.includes(spec)),
+  `表外项 [${[...new Set(staticRequires.filter((spec) => !LOADER_BASE_TABLE.includes(spec)))].join(', ')}]`)
+check('createPortal 替身是真函数（React.createPortal 恒 undefined）',
+  typeof modules['react-dom'].createPortal === 'function')
 check('exports.name 正确', exported.name === 'dsh-theme-studio')
 check('exports.inject = [slots, theme]', Array.isArray(exported.inject) && exported.inject.join(',') === 'slots,theme')
 check('exports.apply 是函数', typeof exported.apply === 'function')
@@ -181,12 +259,76 @@ check('__internals 齐备', exported.__internals && typeof exported.__internals.
 exported.apply(ctx)
 await new Promise((r) => setTimeout(r, 120))
 
+/**
+ * 模拟 React 挂载 `shell.overlay` 条目（**模态 / Toast 等真正浮层的落点**）：
+ * 调组件函数拿元素树 → 给宿主元素造 DOM 节点 → 把 `ref` 回调**配对**交出去
+ * （React 在 commit 阶段就是这么做的：`OverlaySurface` 的 `setHost` → `layer.attachStage`）。
+ *
+ * ⚠️ **背景层不在这个容器里**（真机实测修正）：宿主该槽是 `z-index:20` 的浮层容器，
+ * 背景层进去会盖住 `#root`（`z-index:1`）的全部内容 ⇒ 壁纸埋掉整个界面。
+ * 背景层固定挂 `document.body`（见下方两条分层断言）。这里仍然要跑一遍组件渲染，
+ * 因为模态/Toast 容器确实由它交出，且 `attachStage` 会顺带触发一次落位。
+ *
+ * @returns {any} 浮层宿主容器的 DOM 节点（容器没注册时返回 null）。
+ */
+function mountOverlayEntry() {
+  const reg = registrations.find((item) => item.opts && item.opts.name === 'shell.overlay')
+  if (reg === undefined) return null
+  const hosts = []
+  const pairs = []
+  const walk = (node, depth = 0) => {
+    if (depth > 12 || node === null || node === undefined || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1)
+      return
+    }
+    if (typeof node.type === 'function') {
+      walk(node.type(Object.assign({}, node.props, { children: node.children })), depth + 1)
+      return
+    }
+    if (typeof node.type !== 'string' || node.type === 'Fragment') {
+      walk(node.children, depth + 1)
+      return
+    }
+    const host = makeElement(node.type)
+    if (node.props && node.props.id !== undefined) {
+      host.id = node.props.id
+      byId.set(host.id, host)
+    }
+    const parent = hosts.length > 0 ? hosts[0] : null
+    if (parent !== null) parent.appendChild(host)
+    hosts.push(host)
+    if (node.props && typeof node.props.ref === 'function') pairs.push({ ref: node.props.ref, host: host })
+    walk(node.children, depth + 1)
+  }
+  walk(reg.component({}))
+  for (const pair of pairs) pair.ref(pair.host)
+  return hosts.length > 0 ? hosts[0] : null
+}
+
+const overlayHost = mountOverlayEntry()
+
 check('token 注入发生', themeCalls.overrideTokens.length >= 1, `${String(themeCalls.overrideTokens.length)} 次`)
 check('token source 正确', themeCalls.overrideTokens[0]?.source === 'dsh-theme-studio')
 check('setTheme 被调用', themeCalls.setTheme.length >= 1, JSON.stringify(themeCalls.setTheme))
 check('setFontSize 被调用', themeCalls.setFontSize.length >= 1, JSON.stringify(themeCalls.setFontSize))
+check('浮层条目已注册（模态/Toast 的落点）', overlayHost !== null)
 check('背景层 DOM 存在', doc.getElementById('dts-backdrop') !== null)
-check('浮动按钮存在', doc.getElementById('dts-fab') !== null)
+/* ★ 分层契约（真机实测修正）：背景层**必须挂在 `<body>`** 上。
+   ⚠️ 宿主 `shell.overlay` 的容器是 **`z-index:20` 的浮层槽**
+   （`AppFrame.module.css` 逐字 `.ZTP-Xa_overlayLayer{z-index:20;pointer-events:none;position:absolute;inset:0}`），
+   而我们自己的 `buildCss` 写了 `#root{position:relative;z-index:1}` ⇒ 背景层一旦进了那棵子树，
+   就随 **z-index:20** 压在 `#root` 的**全部内容**之上 ⇒ **壁纸盖住整个界面**（真机复现过：整屏只剩壁纸）。
+   正确分层：背景（body, z0）< UI（`#root`, z1）< 浮层（shell.overlay, z20）——
+   `body.dts-on #root{position:relative;z-index:1}` 这条承重墙**只在"背景层是 body 的子节点"时成立**。
+   这与改造前的行为一致（那时就是 `document.body.insertBefore(layer, body.firstChild)`）。 */
+check('背景层挂在 <body> 上（分层：背景 z0 < #root z1 < 浮层 z20）',
+  doc.getElementById('dts-backdrop')?.parentNode === body,
+  `parent=${String(doc.getElementById('dts-backdrop')?.parentNode?.id || doc.getElementById('dts-backdrop')?.parentNode?.tagName)}`)
+check('背景层绝不许进浮层容器（z-index:20 会盖住整个 UI）',
+  overlayHost === null || doc.getElementById('dts-backdrop')?.parentNode !== overlayHost,
+  `overlayHost 子节点 [${overlayHost === null ? 'n/a' : overlayHost.children.map((child) => child.id || child.tagName).join(', ')}]`)
+check('浮动按钮已移除（入口只走设置页）', doc.getElementById('dts-fab') === null)
 check('界面样式注入', doc.getElementById('dts-chrome-style') !== null)
 check('设置页注册发生', registrations.length >= 1, `${String(registrations.length)} 条`)
 

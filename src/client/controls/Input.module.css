@@ -1,0 +1,48 @@
+/* Input.module.css —— 逐条抄自官方 lib/Input.module.css。
+ * localName 加 dts 前缀；几何（H32 / R12 / pad 0 8 / 图标 16）与令牌原样。 */
+
+.dtsInputWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.dtsInputWrap:focus-within {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.dtsInputIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dtsInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsInput::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+/* 本层追加：禁用态（官方 Input 无自有禁用样式，禁用属性靠透传；这里补上与
+ * Checkbox/Switch 同族的降透明处理，避免禁用输入看起来仍可编辑）。 */
+.dtsInputWrap:has(.dtsInput:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}

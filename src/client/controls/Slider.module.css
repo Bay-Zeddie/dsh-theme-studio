@@ -1,0 +1,121 @@
+/* Slider.module.css —— 官方 primitives **没有 Slider**，这份样式自写。
+ * 依据的官方事实（逐条可核对）：
+ *   - 字段骨架（标签 13/500 主色、hint 12/1.5 tertiary、控件与标签 gap 6）：
+ *     lib/settings-form/fields.module.css 的 .field / .label / .hint；
+ *   - 轨道"读起来像一个地方而不是第二个按钮"的填充色：lib/SegmentedControl.module.css
+ *     的 .control 背景 `--dsw-alias-interactive-bg-hover`；
+ *   - 已填充段的用色：lib/Switch.module.css 的 `[aria-checked='true']` = `--dsw-alias-brand-primary`；
+ *   - 圆形滑块 16px、`--dsw-alias-label-primary-foreground` 填充、白底软 elevation：
+ *     lib/Switch.module.css 的 .thumb + lib/SegmentedControl.module.css 的 .indicator；
+ *   - 焦点环表达式：各处一致（`--dsw-focus-ring-width` + `--dsw-focus-ring-color` 回退 business）；
+ *   - 胶囊/正圆半径 999px 一律配 `corner-shape: round`（ui-theme 的 corner-shape 契约）。
+ * 组件自持的自定义属性只有一个：`--dts-slider-fill`（已填充百分比，由 React 内联写入），
+ * 与官方用 `--dsh-segment-index` / `--dsh-toast-hold` 把状态喂给 CSS 是同一手法。 */
+
+.dtsSlider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+.dtsSliderHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dtsSliderLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsSliderOutput {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 输入本体只提供 20px 的命中区与键盘语义，轨道与滑块由各引擎的伪元素绘制。 */
+.dtsSliderInput {
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dtsSliderInput:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.dtsSliderInput:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+  border-radius: 999px;
+  corner-shape: round;
+}
+
+/* WebKit 系：4px 轨道 + 16px 圆形滑块（margin-top = -(16-4)/2）。 */
+.dtsSliderInput::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: linear-gradient(
+    to right,
+    var(--dsw-alias-brand-primary) 0 var(--dts-slider-fill, 0%),
+    var(--dsw-alias-interactive-bg-hover) var(--dts-slider-fill, 0%) 100%
+  );
+}
+
+.dtsSliderInput::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground);
+  box-shadow: var(--dsw-elevation-soft);
+}
+
+/* Firefox：轨道 + 已填充段是两条独立的伪元素。 */
+.dtsSliderInput::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dtsSliderInput::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-brand-primary);
+}
+
+.dtsSliderInput::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground);
+  box-shadow: var(--dsw-elevation-soft);
+}
+
+.dtsSliderHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}

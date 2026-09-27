@@ -1,16 +1,14 @@
 // src/client/utils.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
-import { clamp, contrastRatio, hslToHex, luminance, parseColor, rgbToHsl, rgba, toHex } from '../../lib/color-core.js'
+import { luminance, parseColor, rgba } from '../../lib/color-core.js'
 
         /* ============================================================ */
         /* 零依赖小工具                                                   */
         /* ============================================================ */
 
         /* 颜色工具并入 lib/color-core.js 单一真源（D3 根治）：真 ESM import，
-           构建期由 tsdown alwaysBundle 内联为一份；历史名留别名/薄包装，
-           全文调用点与 __internals 导出零改动；withAlphaCss 保留「var() 原样透传」
-           语义（解析失败不换成透明黑，实测防线）。 */
-        export var parseColorToRgb = parseColor;
+           构建期由 tsdown alwaysBundle 内联为一份。
+           withAlphaCss 保留「var() 原样透传」语义（解析失败不换成透明黑，实测防线）。 */
         export var relativeLuminance = luminance;
 
         /** 只改不透明度，RGB 原样保留；解析不了（var(...) 等）就原样返回。 */

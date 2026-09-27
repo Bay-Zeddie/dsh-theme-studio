@@ -16,8 +16,8 @@
  * 本模块的导出即 closure-factory 的 module.exports。bare require() 取基座模块
  * （现行生产验证过的运行时形态，r1-probe 实测打包原样透传、两种 react 形态都兼容）。
  */
-import { COMMIT_DEBOUNCE_MS, DEFAULT_PREFIX, FAB_ID, LAYER_ID, MODAL_HOST_ID, PLUGIN_ID, STYLE_ID } from './identity.ts'
-import { MESSAGES, normalizeLang, t } from './i18n.ts'
+import { COMMIT_DEBOUNCE_MS, DEFAULT_PREFIX, LAYER_ID, MODAL_HOST_ID, PLUGIN_ID, STYLE_ID } from './identity.ts'
+import { LOCALE_NS, MESSAGES, getLocaleService, normalizeLang, registerLocaleDictionary, setLocaleService, subscribeLocaleChanges, t } from './i18n.ts'
 import { clamp, contrastRatio, rgbToHsl, toHex } from '../../lib/color-core.js'
 import { humanBytes, mediaLookup, relativeLuminance, withAlphaCss } from './utils.ts'
 import { createStore } from './store.ts'
@@ -41,6 +41,11 @@ export const __internals = {
   MESSAGES: MESSAGES,
   t: t,
   normalizeLang: normalizeLang,
+  LOCALE_NS: LOCALE_NS,
+  setLocaleService: setLocaleService,
+  getLocaleService: getLocaleService,
+  registerLocaleDictionary: registerLocaleDictionary,
+  subscribeLocaleChanges: subscribeLocaleChanges,
   createStore: createStore,
   createApi: createApi,
   createTokenProbe: createTokenProbe,
@@ -65,7 +70,6 @@ export const __internals = {
   COMMIT_DEBOUNCE_MS: COMMIT_DEBOUNCE_MS,
   LAYER_ID: LAYER_ID,
   STYLE_ID: STYLE_ID,
-  FAB_ID: FAB_ID,
   MODAL_HOST_ID: MODAL_HOST_ID,
   DEFAULT_PREFIX: DEFAULT_PREFIX,
   relativeLuminance: relativeLuminance,

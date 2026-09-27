@@ -70,3 +70,13 @@ interface Document {
 interface Element {
   webkitRequestFullscreen?: () => void | Promise<void>
 }
+interface Navigator {
+  /**
+   * Electron `titleBarOverlay` 的 Window Controls Overlay 面：只读顶条的**自由区**
+   * 矩形，原生 — □ × 画在它右边 —— 顶条按钮（整窗全屏）的右偏移就靠它实测。
+   */
+  windowControlsOverlay?: {
+    visible?: boolean
+    getTitlebarAreaRect?: () => { x: number; y: number; width: number; height: number }
+  }
+}

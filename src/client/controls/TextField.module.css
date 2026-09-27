@@ -1,0 +1,71 @@
+/* TextField.module.css —— 与 NumberField.module.css 同一份官方出处
+ * （lib/settings-form/fields.module.css 的 .field / .head / .label / .input /
+ * .input:focus-visible / .input:disabled / .input[aria-invalid] / .invalid / .hint），
+ * 逐条抄录并各自自持一份：两个控件互不依赖对方的样式表。
+ * localName 加 dts 前缀；令牌与字面值都是那份文件里的原值。 */
+
+.dtsTextField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+.dtsTextFieldHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dtsTextFieldLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsTextFieldInput {
+  height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-3);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsTextFieldInput::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.dtsTextFieldInput:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.dtsTextFieldInput:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.dtsTextFieldInput[aria-invalid='true'] {
+  border-color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsTextFieldInvalid {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsTextFieldHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}

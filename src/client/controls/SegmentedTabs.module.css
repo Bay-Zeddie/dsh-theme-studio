@@ -1,0 +1,58 @@
+/* SegmentedTabs.module.css —— 逐条抄自官方 lib/SegmentedTabs.module.css。
+ * localName 加 dts 前缀；几何（H34 / R16 轨道 / R12 指示块）与令牌原样。 */
+
+.dtsSegmentedTabs {
+  position: relative;
+  display: grid;
+  padding: 4px;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.dtsSegmentedTabsIndicator {
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-3);
+  transition: transform 180ms ease;
+  pointer-events: none;
+}
+
+.dtsSegmentedTabsTab {
+  position: relative;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--dsw-radius-md);
+  font-size: 14px;
+  line-height: 20px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  transition: color 180ms ease;
+}
+
+.dtsSegmentedTabsTab:hover,
+.dtsSegmentedTabsTab[aria-selected='true'] {
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dtsSegmentedTabsTab[aria-selected='true'] {
+  font-weight: 600;
+}
+
+.dtsSegmentedTabsTab:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dtsSegmentedTabsIndicator,
+  .dtsSegmentedTabsTab {
+    transition: none;
+  }
+}

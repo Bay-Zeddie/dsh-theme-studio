@@ -99,12 +99,26 @@ describe('锁 J · 引擎：视差/显式令牌/首屏透明', () => {
     assert.equal(buildBootCss(normalizeDoc({})), '')
   })
 
-  it('Agent 预设选择器包裹层（menuAnchor）豁免毛玻璃兜底（创造模式浅斑实测）', () => {
+  it('引擎恢复宿主菜单/浮层兜底（走令牌，不写字面 blur），menuAnchor 自伤补丁同生共死', () => {
+    /* ★ 本轮恢复（主人判定阶段 C/D 删除该兜底为误判）：
+       「零自选色 + 只做磨砂」要求宿主面**既清底又给糊**。官方 `MenuSurface` 的
+       `.material` 自带磨砂，但宿主**对话框 / 工具提示 / 下拉列表**读的是
+       `--dsw-alias-bg-layer-*`（已被玻璃重铸成半透明）而**没有材料层** ——
+       只清底不给糊 = 背后正文直接穿透（主人截图「这个对话框要磨砂」）。
+       所以兜底必须回来；恢复时按主人指定口径改用
+       `var(--dsw-menu-backdrop-filter)`（**不再写字面值**）。
+       豁免补丁存在的**唯一**理由就是兜底会打到 AgentPresetSeat 包裹层
+       （创造模式浅斑，实测）—— 两条必须一起在，缺了补丁就是明知故犯的自伤。 */
     const css = buildCss(normalizeDoc({ backdrop: { mode: 'gradient' }, glass: { enabled: true } }))
-    const blanket = css.indexOf('[class*="menu"]')
-    const exempt = css.indexOf('[class*="menuAnchor"]')
-    assert.ok(blanket !== -1 && exempt !== -1 && exempt > blanket, '豁免声明必须排在兜底之后（同源层叠）')
-    assert.match(css, /\[class\*="menuAnchor"\] \{[^}]*backdrop-filter: none !important/, '豁免必须 !important（Menu 原语会拼接额外类名，结尾锚定会落空）')
+    assert.ok(css.indexOf('[class*="menu"]') !== -1, '宿主菜单兜底必须恢复（子串形态照搬副本）')
+    assert.ok(css.indexOf('[class*="Menu"]') !== -1, '大写变体同样恢复')
+    assert.ok(css.indexOf('[class*="menuAnchor"]') !== -1, '自伤补丁必须与兜底同时在场')
+    assert.match(css, /backdrop-filter: var\(--dsw-menu-backdrop-filter\) !important/,
+      '兜底的模糊必须走令牌，不许写字面 blur(Npx)')
+    assert.doesNotMatch(css, /blur\(/, '引擎 CSS 里不许出现字面 blur() —— 模糊归令牌')
+    // 没开背景时整段不产出（"没启用插件却给宿主挂 50px 模糊"正是当年删它的理由）。
+    const off = buildCss(normalizeDoc({}))
+    assert.equal(off.indexOf('backdrop-filter'), -1, '未开背景时不许给宿主挂任何模糊')
   })
 })
 

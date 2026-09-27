@@ -1,0 +1,31 @@
+/* Checkbox.module.css —— 逐条抄自官方 lib/Checkbox.module.css。
+ * localName 加 dts 前缀；几何（16px 方框 / gap 6 / 14-20）与令牌原样。 */
+
+.dtsCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.dtsCheckbox input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+  cursor: inherit;
+}
+
+.dtsCheckbox input:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.dtsCheckbox:has(input:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}

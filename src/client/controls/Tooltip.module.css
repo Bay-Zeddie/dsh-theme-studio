@@ -1,0 +1,67 @@
+/* Tooltip.module.css —— 逐条抄自官方 lib/Tooltip.module.css。
+ * localName 加 dts 前缀；keyframes 也加前缀。
+ * 删掉的是 `[data-has-shortcut]` 两条规则（本层不移植 ShortcutKeys 键帽）。
+ * `--ds-ease-in-out` 与 Modal 同源：ui-theme base.css 在 `:root` 发布的宿主框架变量
+ * （证据：ui-theme/lib/client.js:1142），不是自造值。 */
+
+.dtsTooltipBubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: fixed;
+  z-index: 100;
+  /* fixed 定位的收缩适配只量 `left` 到视口边缘的空间，靠右的锚点会提前折行；
+   * max-content 只按标签定尺，再由半个视口封顶。 */
+  width: max-content;
+  max-width: 50vw;
+  padding: 3px 7px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-tooltip-bg);
+  color: var(--dsw-static-neutral-bluish-00);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-line;
+  /* 不可断的长 token（URL、路径）不许顶破 max-width。 */
+  overflow-wrap: break-word;
+  pointer-events: none;
+  animation: dtsTooltipIn 150ms var(--ds-ease-in-out);
+}
+
+.dtsTooltipBubble[data-portal] {
+  z-index: 1100;
+}
+
+.dtsTooltipLabel {
+  min-width: 0;
+}
+
+.dtsTooltipBubble[data-side='right'] {
+  transform: translateY(-50%);
+}
+
+.dtsTooltipBubble[data-side='bottom'] {
+  transform: translateX(-50%);
+}
+
+.dtsTooltipBubble[data-side='top'] {
+  transform: translate(-50%, -100%);
+}
+
+/* 末端对齐：`left` 携带锚点的右边缘，气泡因此整体坐在它左侧而不是居中。 */
+.dtsTooltipBubble[data-side='bottom'][data-align='end'] {
+  transform: translateX(-100%);
+}
+
+.dtsTooltipBubble[data-side='top'][data-align='end'] {
+  transform: translate(-100%, -100%);
+}
+
+@keyframes dtsTooltipIn {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dtsTooltipBubble {
+    animation: none;
+  }
+}

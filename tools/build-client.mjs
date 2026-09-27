@@ -31,15 +31,25 @@ if (TSDOWN_ENTRY === undefined) {
   console.error('[build-client] 未找到 tsdown（npm i -D tsdown 或链接 harness node_modules）')
   process.exit(1)
 }
+// --check 曾经 stdio:'ignore'：tsdown 的报错被整段吞掉，只剩一个光秃秃的 exit code，
+// 排障要手动重跑一次才知道哪里炸了。改成捕获，**只在失败时回放**（成功保持安静）。
+const checkMode = process.argv.includes('--check')
 const result = spawnSync(process.execPath, [TSDOWN_ENTRY, '--config', 'tsdown.theme-studio.config.ts'], {
-  cwd: root, stdio: process.argv.includes('--check') ? 'ignore' : 'inherit',
+  cwd: root,
+  stdio: checkMode ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+  encoding: 'utf8',
 })
 if ((result.status ?? 1) !== 0) {
   if (result.error) console.error('[build-client] 构建进程无法启动：', result.error.message)
+  else if (checkMode) {
+    const out = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim()
+    if (out !== '') console.error(out)
+    console.error('[build-client] 构建失败（--check 模式已回放 tsdown 输出）')
+  }
   process.exit(result.status ?? 1)
 }
 
-if (process.argv.includes('--check')) {
+if (checkMode) {
   if (!existsSync(built)) {
     console.error('[build-client] 构建未产出 lib-build/client.js')
     process.exit(1)

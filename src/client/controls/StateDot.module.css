@@ -1,0 +1,125 @@
+/* StateDot.module.css —— 逐条抄自官方 lib/StateDot.module.css。
+ * localName 加 dts 前缀；keyframes 也加前缀（CSS Modules 会把 @keyframes 名一起作用域化，
+ * 官方产物里就是 `dsh-state-dot-spin` 这类已加前缀的名字）；几何与令牌原样。 */
+
+/* 实心状态保住 10px 的布局槽，只画一个 6px 的 currentColor 核。 */
+.dtsDot {
+  position: relative;
+  display: inline-block;
+  flex: none;
+}
+
+.dtsDot::after {
+  content: '';
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  corner-shape: round;
+  background: currentColor;
+}
+
+.dtsDot[data-state='done'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dtsDot[data-state='warning'] {
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.dtsDot[data-state='error'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* idle 是"没有活动"，用主题的中性状态档。 */
+.dtsDot[data-state='idle'] {
+  color: var(--dsw-alias-state-idle-primary);
+}
+
+/* ongoing 是唯一的非圆点状态：一圈安静的整环托着居中的呼吸弧，整个字形持续旋转。
+ * 两条动画共用 1.5s 周期，所以把它们的起始时间钉在一起就能对齐。 */
+.dtsSpinner {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dtsSpinnerMotion {
+  transform-origin: center;
+  animation: dtsStateDotSpin 1.5s linear infinite;
+}
+
+.dtsSpinnerTrack,
+.dtsSpinnerArc {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.dtsSpinnerTrack {
+  opacity: 0.25;
+}
+
+.dtsSpinnerArc {
+  stroke-dasharray: 12 150;
+  animation: dtsStateDotDash 1.5s ease-in-out infinite;
+}
+
+@keyframes dtsStateDotSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dtsStateDotDash {
+  0% {
+    stroke-dasharray: 12 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 24 150;
+    stroke-dashoffset: -6;
+  }
+
+  100% {
+    stroke-dasharray: 12 150;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dtsSpinnerMotion,
+  .dtsSpinnerArc {
+    animation: none;
+  }
+
+  .dtsSpinnerArc {
+    stroke-dasharray: 18 150;
+    stroke-dashoffset: -3;
+  }
+}
+
+/* appearance="step"：实心勾表示完成、空心圆表示等待（官方同一份样式表的后半段）。 */
+.dtsStep {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 50%;
+  corner-shape: round;
+  border: 1.5px solid var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
+.dtsStep[data-state='done'] {
+  border-color: var(--dsw-alias-state-success-primary);
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.dtsStep[data-state='error'] {
+  border-color: var(--dsw-alias-state-error-primary);
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.dtsStep[data-state='warning'] {
+  border-color: var(--dsw-alias-state-warn-primary);
+}

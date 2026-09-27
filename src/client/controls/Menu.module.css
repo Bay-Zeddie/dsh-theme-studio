@@ -1,0 +1,250 @@
+/* Menu.module.css —— 逐条抄自官方 lib/Menu.module.css。
+ * localName 加 dts 前缀；令牌与几何原样（min-width 144/360、行高 34/30/24、
+ * 圆角 md/sm、hairline border-l2、elevation-prominent、l2 滚动条令牌）。
+ *
+ * 逐条删掉的规则（本层不做这两块能力，见 05-controls-port.md）：
+ *   - `.submenu` / `.submenu::before`：不实现嵌套子菜单；
+ *   - `.shortcut` / `.shortcut .shortcutKeys`：不实现 ShortcutKeys 键帽。 */
+
+.dtsMenuRoot {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 各功能菜单共用的紧凑半透明下拉卡片。 */
+.dtsMenuList {
+  /* 下面的 min-width 是设计稿的外层卡片宽度 —— 含内边距。 */
+  box-sizing: border-box;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 0;
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  box-shadow: var(--dsw-elevation-prominent);
+  /* 高层级表面：滚动条滑块取 l2 elevation 令牌。声明放在卡片而不是
+   * `.scrollable .viewport` 上，因为 elevation 是这张表面的属性，自定义属性会
+   * 继承到真正滚动的那个后代（重绑契约见 ui-theme styles/scrollbar.css）。 */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+/* 主卡片在紧凑与可读上下限之间随内容增长。 */
+.dtsMenuList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 144px;
+  max-width: 360px;
+}
+
+/* portal 模式：固定在视口中，坐标由锚点矩形内联给出（side/align 在 JS 里解析，
+ * 上面的就地偏移规则不适用）。portal 列表必须叠在模态遮罩（z 1000）之上 ——
+ * 对话框里的锚点一样期待菜单在它上面。 */
+.dtsMenuPortal {
+  position: fixed;
+  top: auto;
+  left: auto;
+  z-index: 1100;
+}
+
+/* 在锚点上方展开。 */
+.dtsMenuSideTop {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.dtsMenuAlignEnd {
+  left: auto;
+  right: 0;
+}
+
+/* 视口适配：卡片距视口上下边留 12px（Menu.tsx 里 portal 的 MARGIN；上边会加宽到
+ * 框架发布的顶边净空，即 macOS 窗口条），更高的内容在 .viewport 内滚动，
+ * 于是钉住的 .footer 始终可见。 */
+.dtsMenuScrollable {
+  max-height: calc(100vh - 12px - max(12px, var(--dsh-frame-top-clearance, 12px)));
+}
+
+.dtsMenuViewport {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dtsMenuScrollable .dtsMenuViewport {
+  overflow-y: auto;
+}
+
+/* 滚动区下方钉住的行；l2 hairline（l1 在菜单表面上几乎看不见）与 .separator 的间距一致。 */
+.dtsMenuFooter {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.dtsMenuItemWrap {
+  position: relative;
+}
+
+/* 菜单单元：紧凑文字、图标与选中标记的间距。 */
+.dtsMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+}
+
+.dtsMenuItem:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* 方向键移动的是真实焦点，所以键盘所在的行拿到与指针相同的填充：填充就是这一行的
+ * 焦点指示，浏览器默认焦点环会与它重复。 */
+.dtsMenuItem:focus-visible:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.dtsMenuDenseList .dtsMenuItem {
+  min-height: 30px;
+  padding-block: 4px;
+}
+
+.dtsMenuDenseList .dtsMenuLabel {
+  padding-block: 3px;
+}
+
+.dtsMenuCompactList {
+  min-width: 156px;
+  padding: 4px;
+}
+
+.dtsMenuCompactList .dtsMenuItem {
+  min-height: 24px;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: var(--dsw-radius-sm);
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.dtsMenuCompactList .dtsMenuItemIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.dtsMenuCompactList .dtsMenuSeparator {
+  margin: 2px;
+}
+
+.dtsMenuCompactList .dtsMenuLabel {
+  padding: 3px 6px;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.dtsMenuItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dtsMenuItemIcon {
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-menu-icon);
+}
+
+.dtsMenuItemIcon svg,
+.dtsMenuCheck {
+  width: 14px;
+  height: 14px;
+}
+
+.dtsMenuCompactList .dtsMenuItemIcon svg,
+.dtsMenuCompactList .dtsMenuCheck {
+  width: 12px;
+  height: 12px;
+}
+
+.dtsMenuItemLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dtsMenuCheck {
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* 选中单元的底填充保持透明（标记是尾部的勾）；这个类作为拥有者强调的钩子保留。 */
+.dtsMenuSelected {
+  background: transparent;
+}
+
+/* fill 模式选中：这一行握住 hover 填充，不用勾。 */
+.dtsMenuSelectedFill {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* 破坏性行：错误色文字/图标，危险 hover 填充。 */
+.dtsMenuDanger {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsMenuDanger .dtsMenuItemIcon {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dtsMenuDanger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+}
+
+.dtsMenuDanger:focus-visible:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  outline: none;
+}
+
+/* 分组标题行：不可交互的小号灰字，内边距与菜单单元对齐。 */
+.dtsMenuLabel {
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 分隔单元：hairline 上下 py 4 / px 2。用 l2 而不是 l1，理由同 .footer：
+ * l1 在这张表面上几乎看不见。 */
+.dtsMenuSeparator {
+  height: 0.5px;
+  margin: 3px 2px;
+  background: var(--dsw-alias-border-l2);
+}
+
+/* 数据分隔线后面紧跟开启新分组的行时只画一条线；分组起点落在列表首行时不画。 */
+.dtsMenuSeparator + .dtsMenuSeparator,
+.dtsMenuSeparator + .dtsMenuItemWrap > .dtsMenuSeparator:first-child,
+.dtsMenuItemWrap:first-child > .dtsMenuSeparator:first-child {
+  display: none;
+}

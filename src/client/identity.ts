@@ -10,12 +10,23 @@
         export var LAYER_ID = 'dts-backdrop';
         export var STYLE_ID = 'dts-layer-style';
         export var CHROME_STYLE_ID = 'dts-chrome-style';
-        export var FAB_ID = 'dts-fab';
         export var MODAL_HOST_ID = 'dts-modal-host';
         export var DEFAULT_PREFIX = '/dsh-theme-studio';
         /**
          * 玻璃表面兜底清单：Host 的 glassSurfaces 是权威源，但随宿主启动装载（桌面端 / CLI 同一装载路径，改它要重启）。
          * 刷新即生效：新会话条（button-elevated-fill）与聊天气泡（specific-bubble）。
+         *
+         * ⚠️ 口径是"**别名层 + 两个点名放行的调色板基元**"。原先这里有
+         * `--dsw-static-neutral-50` / `-100`，阶段 C/D 删除过一轮；**本轮（2026-09-27）
+         * 按改造前副本恢复并补上解释** —— 这两个基元是宿主 ui-deliverables /
+         * ui-schedule 四张"白面卡"的填充源，宿主 CSS Modules 在**卡片元素自身上**
+         * 声明 `--changes-fill:var(--dsw-static-neutral-50)` 之类，**元素自身的声明
+         * 永远压过从 `body` 继承的值**（宿主 Presenter 把令牌写成 body 行内样式）
+         * ⇒ 只有沿 `var()` 链改基元才重铸得到那四张白面；**把局部变量塞进清单是空操作**。
+         * 逐字实测的爆炸半径与四处同改要求见 `lib/engine.js` 的 `GLASS_SURFACES` 注释。
+         *
+         * 闸口只有一个：`isGlassSurfaceAllowed()`。清单、`app.ts` 的投影过滤、
+         * `composeGlass()` 的运行时闸三处都调它，避免"改了清单却被某个闸静默挡掉"。
          */
         export var EXTRA_GLASS_SURFACES = [
           '--dsw-alias-button-elevated-fill',
@@ -26,8 +37,11 @@
           '--dsw-alias-bg-module-platform',
           '--dsw-specific-sidebar-nav-item-active',
           '--dsw-specific-sidebar-nav-item-hover',
-          // 会话结束产出卡（ui-deliverables）：卡头/文件行的白面走局部
-          // --changes-fill/--deliverable-fill，源头是设计常量 static-neutral-50/100。
+          // 会话结束产出卡（ui-deliverables）的卡头/文件行、工作区计划卡与日程卡的
+          // 白面：局部 `--changes-fill`/`--deliverable-fill`/`--plan-card-fill`/
+          // `--card-fill` 四种填充的源头都是这两个调色板基元（亮色分支；暗色走 850/800）。
+          // 未玻璃化时的实测后果：白字主题下卡头/文件行 #fafafa 白底白字，
+          // 两个 40×40 图标砖（`_cardIcon`/`_leading`）白底白图标。
           '--dsw-static-neutral-50',
           '--dsw-static-neutral-100',
           // hover / active / 页签等"小色块"：底色令牌（floating-hover、markdown-tag）
@@ -45,6 +59,30 @@
           '--dsw-alias-interactive-bg-hover-solid',
           '--dsw-alias-button-ghost-active-fill',
         ];
+        /**
+         * 玻璃清单的**唯一闸口**：哪些名字允许被玻璃重铸。
+         *
+         * 规则：别名层（`--dsw-alias-*` / `--dsw-specific-*`）与其它一切名字放行；
+         * `--dsw-static-*` 调色板**大族**一律挡住（它们是"色"的定义处，绝大多数
+         * 只该由宿主自己管），**只点名放行两个例外**：
+         * `--dsw-static-neutral-50` / `-100` —— 宿主四张"白面卡"的填充源。
+         *
+         * 为什么必须是白名单而不是"前缀全挡"：那两个基元是局部变量
+         * （`--changes-fill` 等）的 `var()` 上游，**只有改基元才重铸得到白面**
+         * （局部变量在卡片元素自身上声明，压过从 body 继承的值）。
+         *
+         * 为什么要集中成一处：清单（`engine.js` / `EXTRA_GLASS_SURFACES`）、
+         * `app.ts` 对宿主投影的过滤、`composeGlass()` 的运行时闸都要用同一个判据 ——
+         * 分开写三份的话，改了一处会被另一处**静默**挡掉（实测踩过）。
+         * @param name - 令牌名。
+         * @returns 是否允许进玻璃重铸。
+         */
+        export var GLASS_PRIMITIVE_ALLOW = ['--dsw-static-neutral-50', '--dsw-static-neutral-100'];
+        export function isGlassSurfaceAllowed(name: string): boolean {
+          if (typeof name !== 'string' || name === '') return false;
+          if (name.indexOf('--dsw-static-') !== 0) return true;
+          return GLASS_PRIMITIVE_ALLOW.indexOf(name) !== -1;
+        }
         /**
          * 承载文字的"小色块"（hover/active 反馈、页签、工具条、菜单）：
          * 面积小但直接压字，普通表面的薄玻璃在亮壁纸上读不清 —— 玻璃浓度

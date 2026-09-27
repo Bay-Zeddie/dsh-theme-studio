@@ -1,0 +1,59 @@
+/* Tag.module.css —— 逐条抄自官方 lib/Tag.module.css（八种 tone 全抄）。
+ * localName 加 dts 前缀；几何（11-17 / pad 1 8 / R999）与令牌原样。
+ * 注意 color-mix 里的百分比（success/info/danger 10%、warning 12%）是官方值，
+ * 尤其 warning 的 12% 是官方注释点名的历史差异，不许"顺手统一"。 */
+
+/* 胶囊几何固定：tag 在任何地方都是同一个尺寸，只有配色随 tone 变化。
+ * tone 配色只走 background/border/color，渲染点仍可用自己的类定位它而不碰到配色。 */
+.dtsTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  corner-shape: round;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dtsTag[data-tone='outline'] {
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dtsTag[data-tone='solid'] {
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-layer-3);
+}
+
+.dtsTag[data-tone='neutral'] {
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dtsTag[data-tone='quiet'] {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 状态 tone 用自身颜色调出填充色，于是配色一改填充与文字一起动，不需要第二个令牌。
+ * 着色 10%，warning 保持 12%（官方注释：与插件清单的条件标签一致）。 */
+.dtsTag[data-tone='success'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dtsTag[data-tone='info'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.dtsTag[data-tone='warning'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.dtsTag[data-tone='danger'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+  color: var(--dsw-alias-state-error-primary);
+}

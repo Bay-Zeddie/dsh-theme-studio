@@ -1,7 +1,11 @@
 // src/client/tabs.ts —— 浏览器半源码模块（TS 产线）。
 // 构建：npm run build:client（tsdown standalone → lib-build/client.js → client.js）。
 import { clamp, toHex } from '../../lib/color-core.js'
-import { P, React, e, useEffect, useRef, useState } from './deps.ts'
+import {
+  Checkbox, DisclosureRow, Input, Menu, MenuItemButton, MenuSurface, Modal,
+  NumberField, SegmentedControl, Select, Slider, Tag, TextField,
+} from './controls/index.ts'
+import { React, e, useEffect, useRef, useState } from './deps.ts'
 import { t } from './i18n.ts'
 import { uiButton, uiPill, uiSwitch } from './primitives.ts'
 import { humanBytes, mediaLookup } from './utils.ts'
@@ -37,154 +41,91 @@ import { humanBytes, mediaLookup } from './utils.ts'
           return out;
         }
 
+        /**
+         * 设置页分组 —— 官方范式：**普通 div 撑满列宽，没有卡片壳**。
+         * 官方 `DeveloperToolsRow` 与 `PluginsSettingsSection`（ui-settings-general / ui-settings-plugins）
+         * 都用"页面级 h2 18/600 + 分组 h3 15/600 + 引言 13/tertiary + 行分割线"分层，
+         * 没有自绘卡片边框。旧实现是 12px 内边距 + 圆角 + `bg-layer-2` + `elevation-soft`
+         * 的卡片壳 —— 与官方设置页并排看就是两套语言。
+         */
         export function Group(props) {
           return e('div', { className: 'dts-group' },
-            props.title ? e('h4', null, props.title) : null,
-            keyed(props.children),
-            props.hint ? e('p', { className: 'dts-hint' }, props.hint) : null)
-        }
-
-        export function Row(props) {
-          return e('div', { className: 'dts-row' },
-            e('label', null, props.label),
-            e('div', { style: { minWidth: 0 } }, keyed(props.children)),
-            props.tail ? e('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, keyed(props.tail)) : null)
-        }
-
-        export function Slider(props) {
-          return e('div', { className: 'dts-range' },
-            e('input', {
-              type: 'range', min: props.min, max: props.max,
-              step: props.step === undefined ? 1 : props.step,
-              value: props.value, 'aria-label': props.label,
-              onChange: function (event) { props.onChange(Number(event.target.value)) },
-            }),
-            e('output', null, props.format ? props.format(props.value) : (props.value + (props.suffix || ''))))
+            props.title ? e('h3', { className: 'dts-group-title' }, props.title) : null,
+            props.hint ? e('p', { className: 'dts-group-desc' }, props.hint) : null,
+            keyed(props.children))
         }
 
         /**
-         * 下拉选择（自绘）：原生 <select> 弹层是系统 UI，吃不到毛玻璃，主题里很突兀
-         * （主人实测「选项这里没同步」）。弹层用设置弹窗同款毛玻璃自绘，质感全局统一。
-         * 键盘契约对齐官方 Menu（ui-primitives/Menu.tsx 就地核验）：↑↓ wrap 移动、
-         * Home/End 首尾、Enter/Space 选中、Esc/Shift+Tab 关闭并把焦点交还触发器、
-         * Tab 确认当前项收起（“Tab settles like Enter”）。
-         * ⚠️ 本组件有 hooks：调用一律 e(Choice, {…})，禁止直调（有回归锁）。
+         * 设置页行 —— 官方 `DeveloperToolsRow.module.css` 逐字：
+         *   `display:flex; justify-content:space-between; align-items:center; gap:24px;
+         *    padding:16px 0; border-bottom:.5px solid var(--dsw-alias-border-l2)`
+         * 标题 `14px/20`、描述 `12px/18 var(--dsw-alias-label-secondary)` + `margin-top:4px`。
+         * 旧实现是 grid 三列（`minmax(96px,168px) 1fr auto`）+ 12.5px 标签。
+         *
+         * ⚠️ 行**自己**不判断"我是不是最后一个" —— 行末分割线由**容器**用后代选择器收尾，
+         *   这是官方写法（`section>[data-slot="settings.general.item"]>:last-child{border-bottom:none}`），
+         *   见 chrome.ts 的 `.dts-group>.dts-row:last-child`。
+         *
+         * 入参：`label` 行标题（必填、已本地化）、`hint` 行描述（可选）、
+         * `children` 右侧控件区、`tail` 最右侧附加物（按钮/读数）。
+         */
+        export function Row(props) {
+          return e('div', { className: 'dts-row' },
+            e('div', { className: 'dts-row-text' },
+              e('div', { className: 'dts-row-title' }, props.label),
+              props.hint ? e('div', { className: 'dts-row-desc' }, props.hint) : null),
+            e('div', { className: 'dts-row-control' }, keyed(props.children)),
+            props.tail ? e('div', { className: 'dts-row-tail' }, keyed(props.tail)) : null)
+        }
+
+        /**
+         * 滑块 —— 直接转发到自写控件层的 `Slider`。
+         *
+         * 旧实现是本文件里的原生 `<input type=range>` + `<output>`（`.dts-range` 一族），
+         * 几何/字号/数值排版全是自造值；控件层那份是"官方没有 Slider，按官方设置页
+         * 字段几何与排版令牌自写"的版本（可见标签 + 右侧 tabular-nums 数值 +
+         * `aria-valuetext` + 越界钳制），并且已经过真机渲染冒烟。
+         *
+         * 参数换名：旧的 `suffix` → 控件的 `unit`；旧的 `format(v)` 回调**不保留**
+         * （控件只做 `String(value) + unit`）—— 需要百分数显示的地方改为在调用点把
+         * 值域折成百分数（如 `dim 0.3` → 滑块值 `30` + `unit:'%'`），语义不变。
+         */
+        export function Range(props) {
+          return e(Slider, {
+            label: props.label,
+            value: props.value,
+            onChange: props.onChange,
+            min: props.min,
+            max: props.max,
+            step: props.step,
+            unit: props.unit === undefined ? props.suffix : props.unit,
+            showValue: props.showValue,
+            hint: props.hint,
+            disabled: props.disabled,
+            id: props.id,
+          })
+        }
+
+        /**
+         * 下拉选择 —— 直接转发到自写控件层的 `Select`。
+         *
+         * 旧实现是本文件里的 `Choice`（约 190 行：自绘触发器 + 自绘弹层 + 手写
+         * ↑↓/Home/End/Enter/Space/Tab/Esc 键盘 + 视口翻转测量 + 文档级 mousedown），
+         * 整段已删除。控件层那份是"官方 primitives 没有下拉，按官方 Menu 的键盘范式
+         * + 官方 `fields.module.css` 的触发器几何 + `MenuSurface` 材质自写"的版本，
+         * 语义用 `listbox`/`option`（"在 N 个互斥值里选一个"的 ARIA 正道），
+         * `portal` 默认 true（面板在可滚动容器里，就地列表会被祖先 overflow 裁掉）。
          */
         export function Choice(props) {
-          var openState = useState(false);
-          var open = openState[0], setOpen = openState[1];
-          var activeState = useState(0);
-          var active = activeState[0], setActive = activeState[1];
-          var rootRef = useRef(null);
-          var triggerRef = useRef(null);
-          var options = props.options || [];
-          var count = options.length;
-          /** @type {any} 初值 null + 回调赋值：不标注会被 CFA 推断成 never。 */
-          var current = null;
-          options.forEach(function (option) { if (option.value === props.value) current = option });
-
-          function closeToTrigger(back) {
-            setOpen(false);
-            if (back && triggerRef.current && typeof triggerRef.current.focus === 'function') triggerRef.current.focus();
-          }
-          function commitAt(index) {
-            var option = options[index];
-            if (!option) return;
-            setOpen(false);
-            if (option.value !== props.value) props.onChange(option.value);
-          }
-          function focusIndex(index) {
-            setActive(index);
-            var node = rootRef.current && typeof rootRef.current.querySelector === 'function'
-              ? rootRef.current.querySelector('[data-index="' + String(index) + '"]')
-              : null;
-            if (node && typeof node.focus === 'function') node.focus();
-          }
-
-          useEffect(function () {
-            if (!open) return undefined;
-            function onDocDown(event) {
-              var node = rootRef.current;
-              if (node && event.target && !node.contains(event.target)) setOpen(false);
-            }
-            document.addEventListener('mousedown', onDocDown);
-            return function () { document.removeEventListener('mousedown', onDocDown) };
-          }, [open]);
-
-          function onRootKey(event) {
-            if (!open) {
-              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                var from = 0;
-                options.forEach(function (option, i) { if (option.value === props.value) from = i });
-                setActive(from);
-                setOpen(true);
-                window.setTimeout(function () { focusIndex(from) }, 0);
-              }
-              return;
-            }
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              event.stopPropagation();
-              closeToTrigger(true);
-              return;
-            }
-            if (event.key === 'Tab') {
-              // Menu 语义：Shift+Tab 像 Esc（关并回触发器）；Tab 确认当前项收起。
-              if (event.shiftKey) {
-                event.preventDefault();
-                closeToTrigger(true);
-              } else if (options[active]) {
-                commitAt(active);
-              }
-              return;
-            }
-            if (count === 0) return;
-            if (event.key === 'ArrowDown') {
-              event.preventDefault();
-              focusIndex((active + 1) % count);
-            } else if (event.key === 'ArrowUp') {
-              event.preventDefault();
-              focusIndex((active - 1 + count) % count);
-            } else if (event.key === 'Home') {
-              event.preventDefault();
-              focusIndex(0);
-            } else if (event.key === 'End') {
-              event.preventDefault();
-              focusIndex(count - 1);
-            } else if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              commitAt(active);
-            }
-          }
-
-          return e('div', { className: 'dts-select', ref: rootRef, onKeyDown: onRootKey },
-            e('button', {
-              type: 'button', className: 'dts-input dts-select-trigger',
-              'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
-              'aria-label': props.label, title: current ? current.label : props.label,
-              ref: triggerRef,
-              onClick: function () {
-                if (open) { closeToTrigger(false); return }
-                var from = 0;
-                options.forEach(function (option, i) { if (option.value === props.value) from = i });
-                setActive(from);
-                setOpen(true);
-              },
-            },
-              e('span', { className: 'dts-select-text' }, current ? current.label : ''),
-              e('span', { className: 'dts-select-caret', 'aria-hidden': 'true' }, '⌄')),
-            open ? e('div', { className: 'dts-select-menu', role: 'listbox', 'aria-label': props.label },
-              options.map(function (option, index) {
-                var selected = option.value === props.value;
-                return e('button', {
-                  key: option.value, type: 'button', role: 'option', 'data-index': String(index),
-                  'aria-selected': selected ? 'true' : 'false',
-                  className: 'dts-select-option', 'data-selected': selected ? 'true' : 'false',
-                  onFocus: function () { setActive(index) },
-                  onClick: function () { commitAt(index) },
-                }, option.label)
-              })) : null)
+          return e(Select, {
+            label: props.label,
+            value: props.value,
+            options: props.options,
+            onChange: props.onChange,
+            placeholder: props.placeholder,
+            disabled: props.disabled,
+            className: props.className,
+          })
         }
 
         /** 开关一律用 Switch（官方缺失时退回自绘），文字标签由外层 Row 给。 */
@@ -205,7 +146,13 @@ import { humanBytes, mediaLookup } from './utils.ts'
               onChange: function (event) { props.onChange(event.target.value) },
             }),
             uiInput({
-              className: 'dts-input', style: { flex: 1 }, value: value, placeholder: '#rrggbb',
+              // ⚠️ 阶段 C/D：不再给控件挂 `.dts-input`。那条自绘规则是"Input 控件样式
+              // 整份失效"时代的等价皮肤（`tools/css-modules.mjs` 的盐以数字开头 →
+              // CSS 标识符非法 → 整份静默失效，Lead 已修，真机实测 19/19 模块均解析出规则）。
+              // 现在控件自己的 `Input.module.css` 就是唯一真源（官方 H32/R12/pad 0 8 几何），
+              // 再挂 `.dts-input`（bg specific-input-major + radius-sm + 12.5px）就是第二个真源，
+              // 同特异性下还会按注入顺序互相压制。这里只留布局。
+              style: { flex: 1 }, value: value, placeholder: '#rrggbb',
               spellCheck: false, 'aria-label': props.label,
               onChange: function (event) { props.onChange(event.target.value.trim()) },
             }),
@@ -216,85 +163,95 @@ import { humanBytes, mediaLookup } from './utils.ts'
         }
 
         /**
-         * 官方 Input 的 className 落外层 wrapper、其余属性透传给内层 input（Input.tsx），
+         * 自写控件层的 Input：className 落外层 wrapper、其余属性透传给内层 input，
          * 直接把 style 透进去只作用到内层、flex 布局吃不到 —— 包一层承接布局样式。
+         * 形状与旧「官方 Input 在位」那条路径逐字一致（wrapper span + 控件自身 wrapper），
+         * 只是实现换成了 ./controls/Input.ts，不再 require 官方包。
          */
         export function uiInput(props) {
-          if (P.Input) {
-            var inner = Object.assign({}, props);
-            delete inner.style;
-            return e('span', { className: 'dts-input-flex', style: props.style }, e(P.Input, inner))
-          }
-          return e('input', props)
+          var inner = Object.assign({}, props);
+          delete inner.style;
+          return e('span', { className: 'dts-input-flex', style: props.style }, e(Input, inner))
         }
 
-        /** 确认框：Esc = 取消，Enter = 确认，焦点落在最后一个（确认）按钮上。 */
+        /**
+         * 确认框 —— 走自写控件层的 `Modal`（官方 `useModalLayer` 契约）。
+         *
+         * 旧实现是自造 `.dts-scrim` + `.dts-dialog` 与一套手写键盘：Esc=取消、
+         * Enter=确认、document 捕获阶段的 Tab 焦点陷阱、30ms 后把焦点放到最后一个按钮。
+         * 现在这些**全部由 Modal 提供**，且都是官方契约：
+         *   · Esc 只归**最顶层**模态（栈语义；不再需要 `engine.get().dialog !== null` 那种手写让位）；
+         *   · 遮罩点击即关、`aria-hidden`、不吃穿透；
+         *   · Tab 焦点陷阱（容器聚焦时进首/末项、边缘环绕、排除 `[inert]/[hidden]`）；
+         *   · 关闭时把焦点归还给打开前的元素（`focusWithoutRing`）；
+         *   · 初始焦点取 `[data-modal-autofocus]` —— **必须用 data 属性而不是 React autoFocus**
+         *     （autoFocus 会先于本层保存触发元素执行）。这里给确认键打这个标记。
+         * Enter=确认不属官方契约（官方 Modal 只认 Esc / 应用关闭 / 遮罩点击），
+         * 保留在根层的 `onKeyDownCapture` 里 —— 捕获阶段先于文档级监听，不会被 Esc 抢走。
+         */
         export function ConfirmDialog(props) {
-          var cardRef = useRef(null);
-          useEffect(function () {
-            var onKey = function (event) {
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                event.stopPropagation();
-                props.onDone(false);
-              } else if (event.key === 'Enter') {
-                event.preventDefault();
-                props.onDone(true);
-              } else if (event.key === 'Tab') {
-                // 焦点陷阱对齐官方 ImageLightbox（就地核验）：Tab 圈闭在对话框内，
-                // 不允许跑到背后的界面。stopPropagation 还要挡住外层模态卡的
-                // 同名陷阱 —— 两个处理器都跑会把一次 Tab 走两步（实测）。
-                event.preventDefault();
-                event.stopPropagation();
-                var nodes = cardRef.current && typeof cardRef.current.querySelectorAll === 'function'
-                  ? Array.prototype.slice.call(cardRef.current.querySelectorAll('button')) : [];
-                if (nodes.length === 0) return;
-                var at = nodes.indexOf(document.activeElement);
-                var nextAt = event.shiftKey
-                  ? (at <= 0 ? nodes.length - 1 : at - 1)
-                  : (at === nodes.length - 1 || at === -1 ? 0 : at + 1);
-                if (typeof nodes[nextAt].focus === 'function') nodes[nextAt].focus();
-              }
-            };
-            document.addEventListener('keydown', onKey, true);
-            var timer = setTimeout(function () {
-              var buttons = cardRef.current ? cardRef.current.querySelectorAll('button') : [];
-              var last = buttons[buttons.length - 1];
-              if (last && last.focus) last.focus();
-            }, 30);
-            return function () {
-              document.removeEventListener('keydown', onKey, true);
-              clearTimeout(timer);
-            };
-          }, []);
-          return e('div', {
-            className: 'dts-scrim',
-            onClick: function (event) { if (event.target === event.currentTarget) props.onDone(false) },
-          }, e('div', {
-            className: 'dts-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': props.title, ref: cardRef,
+          return e(Modal, {
+            open: true,
+            title: props.title,
+            closeLabel: props.cancelLabel,
+            className: 'dts-dialog-modal',
+            onClose: function () { props.onDone(false) },
+            onKeyDownCapture: function (event) {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              props.onDone(true);
+            },
+            footer: e('div', { className: 'dts-dialog-foot' },
+              uiButton({ variant: 'ghost', onClick: function () { props.onDone(false) }, children: props.cancelLabel }),
+              uiButton({
+                variant: props.tone === 'danger' ? 'danger' : 'primary',
+                autofocus: true,
+                onClick: function () { props.onDone(true) },
+                children: props.confirmLabel,
+              })),
           },
-            e('h3', null, props.title),
             (props.lines || []).filter(function (line) { return line !== '' }).map(function (line, index) {
               return e('div', {
                 key: index, className: 'dts-dialog-line',
                 'data-kind': /[\\/]/.test(line) ? 'path' : 'text',
               }, line)
-            }),
-            e('div', { className: 'dts-dialog-foot' },
-              uiButton({ variant: 'ghost', onClick: function () { props.onDone(false) }, children: props.cancelLabel }),
-              uiButton({ variant: props.tone === 'danger' ? 'danger' : 'primary', onClick: function () { props.onDone(true) }, children: props.confirmLabel }))))
+            }))
         }
 
         export function FocusPad(props) {
           var boxRef = useRef(null);
-          function pick(event) {
+          /**
+           * 拖动合帧：每个 pointermove 都 patch 会深拷贝整份 doc 并重渲整棵活动
+           * 页签（store 是单例订阅、全文件无 memo）。与 layer.ts 的视差同款 rAF 门：
+           * 一帧最多落地一次 —— 视觉仍是跟手的 60fps，重渲次数从"事件频率"降到"帧率"。
+           * ⚠️ 暂存的是**数值**不是事件对象：React 16 会回收合成事件，延后取
+           * clientX/clientY 会取到 null。
+           */
+          var frameRaf = 0;
+          var pendingPoint = null;
+          function flushFrame() {
+            frameRaf = 0;
+            var point = pendingPoint;
+            pendingPoint = null;
+            if (point === null) return;
+            pickAt(point.x, point.y);
+          }
+          function pickAt(clientX, clientY) {
             var box = boxRef.current;
             if (box === null) return;
             var rect = box.getBoundingClientRect();
             props.onChange(
-              Math.round(clamp(((event.clientX - rect.left) / Math.max(1, rect.width)) * 100, 0, 100)),
-              Math.round(clamp(((event.clientY - rect.top) / Math.max(1, rect.height)) * 100, 0, 100)));
+              Math.round(clamp(((clientX - rect.left) / Math.max(1, rect.width)) * 100, 0, 100)),
+              Math.round(clamp(((clientY - rect.top) / Math.max(1, rect.height)) * 100, 0, 100)));
           }
+          function pick(event) { pickAt(event.clientX, event.clientY) }
+          useEffect(function () {
+            return function () {
+              if (frameRaf !== 0 && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(frameRaf);
+              frameRaf = 0;
+              pendingPoint = null;
+            };
+          }, []);
           return e('div', {
             ref: boxRef, className: 'dts-focus',
             style: Object.assign(
@@ -307,7 +264,12 @@ import { humanBytes, mediaLookup } from './utils.ts'
               if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId);
               pick(event);
             },
-            onPointerMove: function (event) { if (event.buttons === 1) pick(event) },
+            onPointerMove: function (event) {
+              if (event.buttons !== 1) return;
+              pendingPoint = { x: event.clientX, y: event.clientY };
+              if (frameRaf !== 0) return;
+              frameRaf = window.requestAnimationFrame(flushFrame);
+            },
           })
         }
 
@@ -338,12 +300,17 @@ import { humanBytes, mediaLookup } from './utils.ts'
           var presets = env.state.presets || [];
           return e('div', { className: 'dts-body' },
             Group({
+              /* 本组的行描述就是"明暗与字号直接驱动宿主 theme 服务"（`base.hint`）——
+                 页面级引言另有独立键 `section.intro`（见 app.ts 的 `.dts-page-intro`），
+                 两者不再互相借用：页面级 h2 + 引言 + 分组标题 + 行描述是官方四层节奏。 */
               title: tt('base.scheme'), hint: tt('base.hint'),
               children: [
                 Row({
                   label: tt('base.scheme'),
-                  children: e(Choice, {
-                    label: tt('base.scheme'), value: doc.base.scheme,
+                  children: e(SegmentedControl, {
+                    id: 'dts-scheme',
+                    label: tt('base.scheme'),
+                    value: doc.base.scheme,
                     options: [
                       { value: 'system', label: tt('base.system') },
                       { value: 'light', label: tt('base.light') },
@@ -354,8 +321,8 @@ import { humanBytes, mediaLookup } from './utils.ts'
                 }),
                 Row({
                   label: tt('base.fontSize'),
-                  children: Slider({
-                    label: tt('base.fontSize'), min: 12, max: 17, value: doc.base.fontSize, suffix: 'px',
+                  children: Range({
+                    label: tt('base.fontSize'), min: 12, max: 17, value: doc.base.fontSize, unit: 'px',
                     onChange: function (value) { env.patch(function (d) { d.base.fontSize = value }) },
                   }),
                 }),
@@ -433,13 +400,29 @@ import { humanBytes, mediaLookup } from './utils.ts'
 
           function set(field, value) { env.patch(function (d) { d.backdrop[field] = value }) }
           function setVideo(field, value) { env.patch(function (d) { d.backdrop.video[field] = value }) }
-          function range(labelKey: any, min: any, max: any, field: any, suffix?: any, step?: any, format?: any) {
+          /** 字段滑块（走控件层 Slider）。`unit` 是显示后缀，也是 aria-valuetext 的内容。 */
+          function range(labelKey: any, min: any, max: any, field: any, unit?: any, step?: any) {
             return Row({
               label: tt(labelKey),
-              children: Slider({
-                label: tt(labelKey), min: min, max: max, value: b[field], suffix: suffix,
-                step: step === undefined ? (suffix ? 1 : 0.05) : step, format: format,
+              children: Range({
+                label: tt(labelKey), min: min, max: max, value: b[field], unit: unit,
+                step: step === undefined ? (unit ? 1 : 0.05) : step,
                 onChange: function (v) { set(field, v) },
+              }),
+            })
+          }
+          /**
+           * 分数值滑块（文档里存 0..1，界面显示百分数）。
+           * 控件层 Slider 只做 `String(value) + unit`，没有 format 回调 —— 于是把
+           * **值域折成百分数**再交给它：语义不变（写回时 ÷100），读数与旧 format 逐字相同。
+           */
+          function percentRange(labelKey: any, minPercent: any, maxPercent: any, read: any, write: any) {
+            return Row({
+              label: tt(labelKey),
+              children: Range({
+                label: tt(labelKey), min: minPercent, max: maxPercent, step: 1, unit: '%',
+                value: Math.round(read() * 100),
+                onChange: function (v) { write(v / 100) },
               }),
             })
           }
@@ -456,7 +439,8 @@ import { humanBytes, mediaLookup } from './utils.ts'
               children: [
                 Row({
                   label: tt('backdrop.mode'),
-                  children: e(Choice, {
+                  children: e(SegmentedControl, {
+                    id: 'dts-backdrop-mode',
                     label: tt('backdrop.mode'), value: b.mode,
                     options: [
                       { value: 'none', label: tt('common.none') },
@@ -501,16 +485,27 @@ import { humanBytes, mediaLookup } from './utils.ts'
                   }),
                 }),
                 Row({ label: tt('backdrop.tile'), children: Toggle({ checked: b.tile, label: tt('backdrop.tile'), onChange: function (v) { set('tile', v) } }) }),
-                range('backdrop.scale', 0.5, 4, 'scale', '', 0.05, function (v) { return (Math.round(v * 100) / 100) + '×' }),
+                range('backdrop.scale', 0.5, 4, 'scale', '×', 0.05),
                 Row({
                   label: tt('backdrop.focus'),
-                  tail: e('span', { className: 'dts-card-meta' }, 'X ' + b.focusX + '% · Y ' + b.focusY + '%'),
+                  hint: tt('backdrop.focusHint'),
+                  tail: [
+                    e(NumberField, {
+                      label: 'X %', min: 0, max: 100, step: 1, value: b.focusX,
+                      className: 'dts-focus-num',
+                      onChange: function (v) { env.patch(function (d) { d.backdrop.focusX = v }) },
+                    }),
+                    e(NumberField, {
+                      label: 'Y %', min: 0, max: 100, step: 1, value: b.focusY,
+                      className: 'dts-focus-num',
+                      onChange: function (v) { env.patch(function (d) { d.backdrop.focusY = v }) },
+                    }),
+                  ],
                   children: e(FocusPad, {
                     src: src, x: b.focusX, y: b.focusY,
                     onChange: function (x, y) { env.patch(function (d) { d.backdrop.focusX = x; d.backdrop.focusY = y }) },
                   }),
                 }),
-                e('p', { className: 'dts-hint' }, tt('backdrop.focusHint')),
               ],
             }) : null,
 
@@ -532,10 +527,10 @@ import { humanBytes, mediaLookup } from './utils.ts'
               children: [
                 Row({
                   label: tt('backdrop.dim'),
-                  children: Slider({
-                    label: tt('backdrop.dim'), min: 0, max: 0.95, step: 0.01, value: b.dim,
-                    format: function (v) { return Math.round(v * 100) + '%' },
-                    onChange: function (v) { set('dim', v) },
+                  children: Range({
+                    label: tt('backdrop.dim'), min: 0, max: 95, step: 1, unit: '%',
+                    value: Math.round(b.dim * 100),
+                    onChange: function (v) { set('dim', v / 100) },
                   }),
                 }),
                 Row({
@@ -555,9 +550,9 @@ import { humanBytes, mediaLookup } from './utils.ts'
                 Row({
                   label: tt('backdrop.kenBurns'),
                   children: Toggle({ checked: b.kenBurns, label: tt('backdrop.kenBurns'), onChange: function (v) { set('kenBurns', v) } }),
-                  tail: Slider({
-                    label: tt('backdrop.kenBurnsSeconds'), min: 8, max: 240, step: 2, value: b.kenBurnsSeconds,
-                    format: function (v) { return v + 's' },
+                  tail: Range({
+                    label: tt('backdrop.kenBurnsSeconds'), min: 8, max: 240, step: 2, unit: 's',
+                    value: b.kenBurnsSeconds,
                     onChange: function (v) { set('kenBurnsSeconds', v) },
                   }),
                 }),
@@ -574,9 +569,9 @@ import { humanBytes, mediaLookup } from './utils.ts'
                 Row({ label: tt('backdrop.autoplay'), children: Toggle({ checked: b.video.autoplay, label: tt('backdrop.autoplay'), onChange: function (v) { setVideo('autoplay', v) } }) }),
                 Row({
                   label: tt('backdrop.playbackRate'),
-                  children: Slider({
-                    label: tt('backdrop.playbackRate'), min: 0.25, max: 2, step: 0.05, value: b.video.playbackRate,
-                    format: function (v) { return (Math.round(v * 100) / 100) + '×' },
+                  children: Range({
+                    label: tt('backdrop.playbackRate'), min: 0.25, max: 2, step: 0.05, unit: '×',
+                    value: b.video.playbackRate,
                     onChange: function (v) { setVideo('playbackRate', v) },
                   }),
                 }),
@@ -587,16 +582,11 @@ import { humanBytes, mediaLookup } from './utils.ts'
               title: tt('glass.enabled'), hint: tt('glass.hint'),
               children: [
                 Row({ label: tt('glass.enabled'), children: Toggle({ checked: doc.glass.enabled, label: tt('glass.enabled'), onChange: function (v) { env.patch(function (d) { d.glass.enabled = v }) } }) }),
-                Row({
-                  label: tt('glass.alpha'),
-                  children: Slider({
-                    label: tt('glass.alpha'), min: 0.15, max: 1, step: 0.01, value: doc.glass.alpha,
-                    format: function (v) { return Math.round(v * 100) + '%' },
-                    onChange: function (v) { env.patch(function (d) { d.glass.alpha = v }) },
-                  }),
-                }),
-                Row({ label: tt('glass.blur'), children: Slider({ label: tt('glass.blur'), min: 0, max: 60, value: doc.glass.blur, suffix: 'px', onChange: function (v) { env.patch(function (d) { d.glass.blur = v }) } }) }),
-                Row({ label: tt('glass.saturate'), children: Slider({ label: tt('glass.saturate'), min: 100, max: 300, step: 5, value: doc.glass.saturate, suffix: '%', onChange: function (v) { env.patch(function (d) { d.glass.saturate = v }) } }) }),
+                percentRange('glass.alpha', 15, 100,
+                  function () { return doc.glass.alpha },
+                  function (v) { env.patch(function (d) { d.glass.alpha = v }) }),
+                Row({ label: tt('glass.blur'), children: Range({ label: tt('glass.blur'), min: 0, max: 60, value: doc.glass.blur, unit: 'px', onChange: function (v) { env.patch(function (d) { d.glass.blur = v }) } }) }),
+                Row({ label: tt('glass.saturate'), children: Range({ label: tt('glass.saturate'), min: 100, max: 300, step: 5, value: doc.glass.saturate, unit: '%', onChange: function (v) { env.patch(function (d) { d.glass.saturate = v }) } }) }),
               ],
             }) : null)
         }
@@ -622,8 +612,12 @@ import { humanBytes, mediaLookup } from './utils.ts'
                       : e('img', { className: 'dts-thumb', src: env.mediaUrl(item), alt: item.name, loading: 'lazy', decoding: 'async' }),
                   e('div', { className: 'dts-card-body' },
                     e('div', { className: 'dts-card-name', title: item.name }, item.name),
+                    // 素材类型是**只读徽章**：交给自写控件层的 `Tag`（8 种 tone），
+                    // 不再拼字符串（旧写法把 kind 直接缀进一行 10.5px 文本，读不出层级）。
                     e('div', { className: 'dts-card-meta' },
-                      item.kind + ' · ' + humanBytes(item.bytes) + (item.width ? ' · ' + item.width + '×' + item.height : ''))),
+                      e(Tag, { tone: 'quiet' }, item.kind),
+                      e('span', null, humanBytes(item.bytes)
+                        + (item.width ? ' · ' + item.width + '×' + item.height : '')))),
                   e('div', { className: 'dts-card-actions' },
                     item.kind === 'font'
                       ? uiButton({ variant: 'ghost', size: 'sm', onClick: function () { env.useAsFont(item) }, children: tt('type.useFamily') })
@@ -642,10 +636,12 @@ import { humanBytes, mediaLookup } from './utils.ts'
 
         export function ContrastReadout(props) {
           var ratio = props.env.textContrast(props.scheme);
-          var level = ratio >= 7 ? 'ok' : (ratio >= 4.5 ? '' : 'bad');
+          // 等级徽章走自写控件层的 `Tag`（只读徽章）：语义 tone 直接表达 WCAG 档位，
+          // 不必再自造 `data-level` 属性 + 三条 `.dts-badge` 规则。
+          var tone = ratio >= 7 ? 'success' : (ratio >= 4.5 ? 'neutral' : 'danger');
           return e('div', { className: 'dts-contrast' },
             e('span', null, props.t('color.contrast')),
-            e('span', { className: 'dts-badge', 'data-level': level }, (Math.round(ratio * 100) / 100) + ':1'))
+            e(Tag, { tone: tone }, (Math.round(ratio * 100) / 100) + ':1'))
         }
 
         export function ColorTab(props) {
@@ -696,12 +692,13 @@ import { humanBytes, mediaLookup } from './utils.ts'
             }),
             Group({
               title: tt('color.groups'), hint: tt('color.contrastHint'),
-              children: e('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
-                e('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
-                  e('input', {
-                    className: 'dts-input', placeholder: '--dsw-…', value: filter[0], 'aria-label': tt('color.groups'),
+              children: e('div', { className: 'dts-token-groups' },
+                e('div', { className: 'dts-filter-row' },
+                  e(TextField, {
+                    className: 'dts-field-grow',
+                    label: tt('color.groups'), placeholder: '--dsw-…', value: filter[0], spellCheck: false,
                     // 不过滤输入本身：trim 会让空格永远打不进去；匹配时再收口。
-                    onChange: function (event) { filter[1](event.target.value) },
+                    onChange: function (v) { filter[1](v) },
                   }),
                   ContrastReadout({ env: env, t: tt, scheme: scheme })),
                 groups.map(function (group) {
@@ -734,7 +731,7 @@ import { humanBytes, mediaLookup } from './utils.ts'
                           })))
                     }))
                 }),
-                e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 } },
+                e('div', { className: 'dts-extras' },
                   extras.map(function (name) {
                     return e('div', { key: name, className: 'dts-token-row' },
                       e('div', { className: 'dts-token-name', title: name }, name),
@@ -761,29 +758,68 @@ import { humanBytes, mediaLookup } from './utils.ts'
          * 草稿必须是**组件内状态**：设置页与模态同时打开时就是两个实例，
          * 放模块级共享对象会互相串字；而且原先 `value: ''` 写死，
          * 输入框根本显示不出用户敲的字。
+         *
+         * ★ 令牌名建议弹层走自写控件层的 `MenuSurface`（材质/圆角/模糊/暗色兜底全在它
+         *   内部），替掉原来的原生 `<datalist>`：后者是**系统 UI**，主题令牌一条都够不着
+         *   —— 与"原生 `<select>` 弹层吃不到毛玻璃"完全同一个根因（主人实测
+         *   「选项这里没同步」）。语义用 `listbox`/`option`（"在候选里选一个"）。
+         * ⚠️ 键盘契约只做最小面：Escape 收起、（未做）↑↓ 走位 —— 见 13 报告 §4 的说明。
+         *   弹层向上展开：本行位于色彩页最底部，向下弹会被祖先滚动容器裁掉。
          */
         export function CustomTokenAdder(props) {
           var env = props.env, tt = props.t;
           var draft = useState('');
-          function add() {
-            var name = String(draft[0] || '').trim();
+          var openState = useState(false);
+          var open = openState[0];
+          function add(value?) {
+            var name = String(value === undefined ? (draft[0] || '') : value).trim();
             if (name === '') return;
             props.onAdd(name);
             draft[1]('');
+            openState[1](false);
           }
-          return e('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
-            e('input', {
-              className: 'dts-input', placeholder: tt('color.customName'), value: draft[0],
-              list: 'dts-token-list', 'aria-label': tt('color.custom'), spellCheck: false,
-              onChange: function (event) { draft[1](event.target.value) },
-              onKeyDown: function (event) {
-                if (event.key === 'Enter') { event.preventDefault(); add() }
-              },
-            }),
-            uiButton({ variant: 'ghost', onClick: add, children: tt('color.customAdd') }),
-            e('datalist', { id: 'dts-token-list' }, env.tokenNames().slice(0, 600).map(function (name) {
-              return e('option', { key: name, value: name })
-            })))
+          var needle = String(draft[0] || '').trim().toLowerCase();
+          var matches = needle === ''
+            ? []
+            : env.tokenNames().filter(function (name) {
+              return name.toLowerCase().indexOf(needle) >= 0;
+            }).slice(0, 8);
+          useEffect(function () {
+            if (!open) return undefined;
+            function onDocDown(event) {
+              var field = document.getElementById('dts-token-adder');
+              if (field !== null && event.target instanceof Node && field.contains(event.target)) return;
+              openState[1](false);
+            }
+            document.addEventListener('pointerdown', onDocDown);
+            return function () { document.removeEventListener('pointerdown', onDocDown) };
+          }, [open]);
+          return e('div', { className: 'dts-adder', id: 'dts-token-adder' },
+            e('div', { className: 'dts-adder-field' },
+              e(TextField, {
+                className: 'dts-field-grow',
+                label: tt('color.custom'), placeholder: tt('color.customName'), value: draft[0],
+                spellCheck: false, autoComplete: 'off',
+                'aria-expanded': open ? 'true' : 'false',
+                'aria-controls': 'dts-token-suggest',
+                onChange: function (v) { draft[1](v); openState[1](true) },
+                onFocus: function () { openState[1](true) },
+                onKeyDown: function (event) {
+                  if (event.key === 'Enter') { event.preventDefault(); add() } else if (event.key === 'Escape') { openState[1](false) }
+                },
+              }),
+              open && matches.length > 0
+                ? e(MenuSurface, {
+                  id: 'dts-token-suggest', className: 'dts-suggest',
+                  role: 'listbox', 'aria-label': tt('color.custom'),
+                }, matches.map(function (name) {
+                  return e('button', {
+                    key: name, type: 'button', role: 'option', className: 'dts-suggest-row',
+                    onClick: function () { add(name) },
+                  }, name)
+                }))
+                : null),
+            uiButton({ variant: 'ghost', onClick: function () { add() }, children: tt('color.customAdd') }))
         }
 
         /* -------------------------------------------------------- 文字页 */
@@ -807,23 +843,26 @@ import { humanBytes, mediaLookup } from './utils.ts'
               children: [
                 Row({
                   label: tt('type.uiFont'),
-                  children: e('input', {
-                    className: 'dts-input', value: doc.type.uiFont, spellCheck: false, 'aria-label': tt('type.uiFont'),
-                    onChange: function (event) { env.patch(function (d) { d.type.uiFont = event.target.value }) },
+                  children: e(TextField, {
+                    className: 'dts-field-grow',
+                    label: tt('type.uiFont'), value: doc.type.uiFont, spellCheck: false,
+                    // ⚠️ 控件契约：onChange 直接给**字符串**，不是 event。
+                    onChange: function (v) { env.patch(function (d) { d.type.uiFont = v }) },
                   }),
                 }),
                 Row({
                   label: tt('type.codeFont'),
-                  children: e('input', {
-                    className: 'dts-input', value: doc.type.codeFont, spellCheck: false, 'aria-label': tt('type.codeFont'),
-                    onChange: function (event) { env.patch(function (d) { d.type.codeFont = event.target.value }) },
+                  children: e(TextField, {
+                    className: 'dts-field-grow',
+                    label: tt('type.codeFont'), value: doc.type.codeFont, spellCheck: false,
+                    onChange: function (v) { env.patch(function (d) { d.type.codeFont = v }) },
                   }),
                 }),
                 Row({
                   label: tt('type.letterSpacing'),
-                  children: Slider({
-                    label: tt('type.letterSpacing'), min: -1, max: 4, step: 0.05, value: doc.type.letterSpacing,
-                    format: function (v) { return (Math.round(v * 100) / 100) + 'em' },
+                  children: Range({
+                    label: tt('type.letterSpacing'), min: -1, max: 4, step: 0.05, unit: 'em',
+                    value: doc.type.letterSpacing,
                     onChange: function (v) { env.patch(function (d) { d.type.letterSpacing = v }) },
                   }),
                 }),
@@ -862,17 +901,21 @@ import { humanBytes, mediaLookup } from './utils.ts'
               children: [
                 Row({
                   label: tt('shape.corner'),
-                  children: Slider({
+                  hint: tt('shape.cornerHint'),
+                  children: Range({
                     label: tt('shape.corner'), min: 1, max: 3, step: 0.05, value: s.cornerShape,
-                    format: function (v) { return 'superellipse(' + (Math.round(v * 100) / 100) + ')' },
                     onChange: function (v) { env.patch(function (d) { d.shape.cornerShape = v }) },
                   }),
                 }),
                 Row({
                   label: tt('shape.motion'),
-                  children: Slider({
-                    label: tt('shape.motion'), min: 0, max: 4, step: 0.1, value: s.motionSpeed,
-                    format: function (v) { return v === 0 ? 'off' : (Math.round(v * 100) / 100) + '×' },
+                  children: Range({
+                    label: tt('shape.motion'), min: 0, max: 4, step: 0.1, unit: '×', value: s.motionSpeed,
+                    /* 读数为 0 时 `unit:'×'` 会渲染成 `0×` —— 看着像"零倍速"而不是"关闭"，
+                       改造前这一格显示的是 `off`。用 `hint` 把语义说清楚。
+                       **不给 Slider 加 `format`**：官方 Slider 契约里没有这个 prop，
+                       为一个读数标注偏离官方接口不值（改造前那处也是自家实现才有的能力）。 */
+                    hint: s.motionSpeed === 0 ? tt('shape.motionOff') : undefined,
                     onChange: function (v) { env.patch(function (d) { d.shape.motionSpeed = v }) },
                   }),
                 }),
@@ -909,10 +952,15 @@ import { humanBytes, mediaLookup } from './utils.ts'
           var nameState = useState('');
           var rowsState = useState(null);
           var activeState = useState('');
+          /** 打开着「⋯」菜单的那一行（slug）；空串 = 全关。 */
+          var menuState = useState('');
+          /** 卸载门闩：切页签/关模态后在飞的主题档列表响应不得再写 state
+           *  （同文件 AdvancedTab 已有同款，这里补上，行为对齐）。 */
+          var alive = true;
           function refresh() {
-            return env.api.themes().then(function (value) { rowsState[1](value) }, function () { /* 读不到就留旧列表，不打扰 */ })
+            return env.api.themes().then(function (value) { if (alive) rowsState[1](value) }, function () { /* 读不到就留旧列表，不打扰 */ })
           }
-          useEffect(function () { void refresh() }, []);
+          useEffect(function () { void refresh(); return function () { alive = false } }, []);
           var rows = rowsState[0] === null ? null : (rowsState[0].themes || []);
           function saveAs(name, force) {
             var clean = String(name || '').trim()
@@ -971,11 +1019,11 @@ import { humanBytes, mediaLookup } from './utils.ts'
           return e('div', { className: 'dts-body' },
             Group({
               title: tt('tab.profile'), hint: tt('profile.hint'),
-              children: e('div', { style: { display: 'flex', gap: 8 } },
-                e('input', {
-                  className: 'dts-input', value: nameState[0], placeholder: tt('profile.namePh'),
-                  'aria-label': tt('profile.namePh'),
-                  onChange: function (event) { nameState[1](event.target.value) },
+              children: e('div', { className: 'dts-field-row' },
+                e(TextField, {
+                  className: 'dts-field-grow',
+                  label: tt('tab.profile'), value: nameState[0], placeholder: tt('profile.namePh'),
+                  onChange: function (v) { nameState[1](v) },
                   onKeyDown: function (event) { if (event.key === 'Enter') saveAs(nameState[0], false) },
                 }),
                 uiButton({ variant: 'primary', size: 'sm', onClick: function () { saveAs(nameState[0], false) }, children: tt('profile.saveNew') })),
@@ -991,10 +1039,39 @@ import { humanBytes, mediaLookup } from './utils.ts'
                       row.accent ? e('span', { className: 'dts-profile-dot', style: { background: row.accent } }) : null,
                       (row.name || row.slug) + (on ? ' ✓' : '')),
                     e('div', { className: 'dts-hint' }, metaOf(row)),
-                    e('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' } },
+                    e('div', { className: 'dts-row-actions' },
                       uiButton({ variant: 'primary', size: 'sm', disabled: on, onClick: function () { apply(row) }, children: tt('profile.apply') }),
-                      uiButton({ variant: 'ghost', size: 'sm', onClick: function () { saveAs(row.name || row.slug, true) }, children: tt('profile.overwrite') }),
-                      uiButton({ variant: 'ghost', size: 'sm', onClick: function () { remove(row) }, children: tt('profile.del') })))
+                      /* ★ 行的次要动作收进菜单 —— 这是**菜单语义**的正确落点
+                         （references_practices.md:35「按同类官方页面抄行模式」：
+                         一行一个主操作 + 一个"更多"菜单，而不是三个并排按钮互相挤）。
+                         走自写控件层的 `Menu` + `MenuItemButton`：
+                           · `Menu` 是官方 Menu 的逐字移植（↑↓ 环绕 / Home / End /
+                             Enter / Esc 归还焦点 / Tab settles like Enter / 外部点击关闭）；
+                           · `MenuItemButton` 是官方组件行的写法（role=menuitem + 支持 danger
+                             配色与 separatorBefore 分组线）；
+                           · `portal: true` —— 列表渲染进 body 并按其锚点矩形 fixed 定位，
+                             否则会被祖先的 `overflow-y:auto`（面板唯一滚动容器）裁掉。 */
+                      e(Menu, {
+                        open: menuState[0] === row.slug,
+                        portal: true,
+                        align: 'end',
+                        onClose: function () { menuState[1]('') },
+                        anchor: uiButton({
+                          variant: 'ghost', size: 'sm',
+                          ariaLabel: tt('tab.profile'), title: tt('tab.profile'),
+                          onClick: function () { menuState[1](menuState[0] === row.slug ? '' : row.slug) },
+                          children: '⋯',
+                        }),
+                      },
+                        e(MenuItemButton, {
+                          key: 'overwrite',
+                          onSelect: function () { menuState[1](''); saveAs(row.name || row.slug, true) },
+                        }, tt('profile.overwrite')),
+                        e(MenuItemButton, {
+                          key: 'delete', danger: true, separatorBefore: true,
+                          onSelect: function () { menuState[1](''); remove(row) },
+                        }, tt('profile.del'))))
+                  )
                 })))
         }
 
@@ -1003,6 +1080,15 @@ import { humanBytes, mediaLookup } from './utils.ts'
         export function AdvancedTab(props) {
           var env = props.env, tt = props.t, doc = props.doc;
           var usageState = useState(null);
+          /**
+           * 导入的合并开关。宿主 `/api/import?mode=merge` 与 api.importDoc 的第二参
+           * 早就实现了"按字段合并"，但此前**没有任何 UI 能传这个参** —— 功能有、按钮缺。
+           * 默认关（保持"整份替换"这个既有语义），勾上才走合并。
+           */
+          var mergeState = useState(false);
+          var merge = mergeState[0], setMerge = mergeState[1];
+          /** 「素材占用」折叠行的开合（DisclosureRow 是受控组件）。 */
+          var usageOpen = useState(false);
           useEffect(function () {
             var alive = true;
             void env.api.usage().then(
@@ -1014,32 +1100,58 @@ import { humanBytes, mediaLookup } from './utils.ts'
             Group({
               title: tt('adv.css'), hint: tt('adv.cssHint'),
               children: e('textarea', {
-                className: 'dts-input dts-textarea', value: doc.advanced.css, spellCheck: false, 'aria-label': tt('adv.css'),
+                className: 'dts-textarea', value: doc.advanced.css, spellCheck: false, 'aria-label': tt('adv.css'),
                 onChange: function (event) { env.patch(function (d) { d.advanced.css = event.target.value }, { debounce: 700 }) },
               }),
             }),
             Group({
               title: 'JSON',
-              children: e('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
-                e('a', { className: 'dts-btn', href: env.api.exportUrl(), download: 'dsh-theme.json' }, tt('adv.export')),
-                e('label', { className: 'dts-btn', style: { cursor: 'pointer' } }, tt('adv.import'),
-                  e('input', {
-                    type: 'file', accept: 'application/json,.json', hidden: true,
-                    onChange: function (event) {
-                      var file = event.target.files && event.target.files[0];
-                      event.target.value = '';
-                      if (!file) return;
-                      file.text()
-                        .then(function (text) { return env.api.importDoc(JSON.parse(text)) })
-                        .then(function (projection) { env.accept(projection); env.notify(tt('common.saved'), 'ok') },
-                          function (error) { env.notify(tt('common.failed') + '：' + String(error.message || error), 'error') })
-                    },
-                  }))),
+              children: [
+                /* ⚠️ 真缺陷修复（第 13 轮渲染冒烟抓到的）：这一格的勾选框原先写成
+                   `Group({ …, tail: e('label', …checkbox…) })` —— 而 `Group` **根本不读 `tail`**
+                   （它只渲染 title/hint/children）。于是「合并导入」这个勾选框从加进来的那天起
+                   **一次都没渲染过**：宿主与 api 早就实现 `mode=merge`，按钮却从未出现在界面上。
+                   静态源码锁（`/type: 'checkbox'…setMerge/`）看不到这种"死槽位"——
+                   只有真渲染才暴露。现在它是一个正式的行（Row 的右侧控件位），必然渲染。 */
+                Row({
+                  label: tt('adv.merge'),
+                  hint: tt('adv.mergeHint'),
+                  children: e(Checkbox, {
+                    checked: merge,
+                    label: tt('adv.merge'),
+                    title: tt('adv.mergeHint'),
+                    // 控件契约：onChange 直接给**布尔**，不是 event。
+                    onChange: function (next) { setMerge(next) },
+                  }),
+                }),
+                e('div', { className: 'dts-json-actions' },
+                  e('a', { className: 'dts-btn', href: env.api.exportUrl(), download: 'dsh-theme.json' }, tt('adv.export')),
+                  e('label', { className: 'dts-btn', style: { cursor: 'pointer' } }, tt('adv.import'),
+                    e('input', {
+                      type: 'file', accept: 'application/json,.json', hidden: true,
+                      onChange: function (event) {
+                        var file = event.target.files && event.target.files[0];
+                        event.target.value = '';
+                        if (!file) return;
+                        file.text()
+                          .then(function (text) { return env.api.importDoc(JSON.parse(text), merge ? 'merge' : '') })
+                          .then(function (projection) { env.accept(projection); env.notify(tt('common.saved'), 'ok') },
+                            function (error) { env.notify(tt('common.failed') + '：' + String(error.message || error), 'error') })
+                      },
+                    }))),
+              ],
             }),
-            usageState[0] ? Group({
+            /* 「素材占用」是次要读数：收进自写控件层的 `DisclosureRow`（官方折叠行），
+               默认折叠 —— 它不再占一整块版面，需要时点开。 */
+            usageState[0] ? e(DisclosureRow, {
+              key: 'usage',
               title: tt('adv.usage'),
-              children: e('p', { className: 'dts-hint' },
-                String(usageState[0].files) + ' files · ' + humanBytes(usageState[0].bytes)),
-            }) : null)
+              open: usageOpen[0],
+              expandable: true,
+              expandOnRowClick: true,
+              onToggle: function () { usageOpen[1](!usageOpen[0]) },
+              className: 'dts-disclosure',
+            },
+              e('p', { className: 'dts-hint' },
+                String(usageState[0].files) + ' files · ' + humanBytes(usageState[0].bytes))) : null)
         }
-

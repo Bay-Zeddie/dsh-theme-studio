@@ -1,0 +1,97 @@
+/* Toast.module.css —— 逐条抄自官方 lib/Toast.module.css。
+ * localName 加 dts 前缀；keyframes 也加前缀。淡出延迟来自组件写入的
+ * `--dsh-toast-hold`（宿主框架变量），于是"卸载定时器"与"动画延迟"只有一个真源。 */
+
+/* 淡出延迟由组件以 `--dsh-toast-hold` 给出，一个值同时驱动卸载定时器与本动画；
+ * 回退值与组件自己的默认一致。淡出**时长**仍必须与 Toast.tsx 的 FADE_MS 对齐，没有拥有者会改它。 */
+
+.dtsToast {
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  /* 高于图片灯箱遮罩用的 1000：预览开着时报告的失败也必须可读。 */
+  z-index: 1100;
+  /* 公告永不拦截点击。 */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 设了 `left` 的 fixed 盒只能按 `left` 右侧的空间收缩适配（-50% 平移发生在定尺之后），
+   * 于是靠近窗口边缘的锚定横幅会提前折行。max-content 只按文字定尺，再由下面的
+   * max-width 封顶。 */
+  width: max-content;
+  max-width: min(640px, calc(100vw - 48px));
+  padding: 12px 16px;
+  border-radius: var(--dsw-radius-lg);
+  /* 设计平台的 toast 表面在**两种主题下都是深色**（浅色 bluish-800 / 深色 bluish-750），
+   * 所以这里的文字与动作色固定，不随主题翻转。 */
+  background: var(--dsw-alias-toast-bg);
+  color: var(--dsw-alias-toast-label);
+  font-size: 14px;
+  line-height: 22px;
+  box-shadow: var(--dsw-shadow-lv3);
+  transform: translateX(-50%);
+  animation:
+    dtsToastIn 160ms ease-out,
+    dtsToastFade 1000ms ease var(--dsh-toast-hold, 3000ms) forwards;
+}
+
+.dtsToastIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.dtsToastIconSuccess {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dtsToastText {
+  min-width: 0;
+}
+
+.dtsToastAction {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* deepseek-400，在永远深色的 toast 表面上读作动作色，不加下划线。 */
+  color: var(--dsw-static-deepseek-400);
+  font: inherit;
+  cursor: pointer;
+  /* 动作文字与前后文案之间留出呼吸。 */
+  margin-inline: 3px;
+  /* 横幅表面保持点击穿透（上面的 pointer-events: none）；只有动作文字吃指针。 */
+  pointer-events: auto;
+}
+
+.dtsToastAction:hover {
+  opacity: 0.8;
+}
+
+@keyframes dtsToastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes dtsToastFade {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* 减少动效时去掉滑入；延迟淡出（opacity 变化，不是位移）仍会在定时卸载前结束横幅。 */
+@media (prefers-reduced-motion: reduce) {
+  .dtsToast {
+    animation: dtsToastFade 1000ms ease var(--dsh-toast-hold, 3000ms) forwards;
+  }
+}

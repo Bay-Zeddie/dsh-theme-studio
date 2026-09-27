@@ -80,7 +80,7 @@ $Package 已装入 profile「$Profile」。
 
   生效：  重启应用（桌面端 Host 半只在启动时装载）
   验证：  dsh --profile $Profile --dump-config | Select-String $Package
-          界面右下角应出现圆形浮动按钮（点开即主题工坊模态），
+          界面右下角不再有浮动按钮（唯一入口在设置 → 主题工坊），
           设置里应出现「主题工坊」独立分区
   卸载：  powershell -File .\uninstall.ps1 -Profile $Profile
          （或 dsh plugin --profile $Profile remove $Package）

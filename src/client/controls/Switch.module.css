@@ -1,0 +1,47 @@
+/* Switch.module.css —— 逐条抄自官方 lib/Switch.module.css。
+ * localName 加 dts 前缀；令牌引用（--dsw-*）与几何（36×20 / 16px 拇指 / 16px 位移）原样。 */
+
+/* 开关外观跟随 aria-checked 而不是并行的类名，视觉状态不可能与辅助技术读到的状态不一致。
+ *
+ * 胶囊轨道与圆形拇指退出全局超级椭圆。 */
+.dtsSwitch {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--dsw-alias-border-l3);
+  cursor: pointer;
+}
+
+.dtsSwitch[aria-checked='true'] {
+  background: var(--dsw-alias-brand-primary);
+}
+
+.dtsSwitch:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.dtsSwitch:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.dtsSwitchThumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground);
+  transition: transform 120ms ease;
+}
+
+.dtsSwitch[aria-checked='true'] .dtsSwitchThumb {
+  transform: translateX(16px);
+}

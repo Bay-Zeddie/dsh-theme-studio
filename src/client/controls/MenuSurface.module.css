@@ -1,0 +1,56 @@
+/* MenuSurface.module.css —— 逐条抄自官方 lib/MenuSurface.module.css。
+ * localName 加 dts 前缀；令牌与几何原样。
+ *
+ * 唯一改写：官方的 macOS 底层选择器写作 `:global(html[data-platform='darwin']) .backing`，
+ * 本层去掉 `:global()` 包装 —— CSS Modules 本来就只作用域化类名与 id，元素选择器
+ * `html` 与属性选择器不会被改写，语义完全一致，同时不依赖编译器是否实现 `:global()`。 */
+
+.dtsMenuSurface,
+.dtsMenuBacking {
+  border-radius: var(--dsw-radius-lg);
+}
+
+.dtsMenuSurfaceCompact {
+  border-radius: var(--dsw-radius-md);
+}
+
+:where(.dtsMenuSurface) {
+  position: relative;
+}
+
+.dtsMenuSurface {
+  anchor-name: var(--dsh-menu-anchor);
+  isolation: isolate;
+}
+
+/* 只对背景做 filter，嵌套菜单与 fixed 浮层因此不会被祖先的 backdrop root
+ * 或新的 fixed 定位包含块困住。 */
+.dtsMenuMaterial {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--dsw-menu-surface-fill);
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  pointer-events: none;
+}
+
+.dtsMenuBacking {
+  display: none;
+}
+
+/* Chromium 需要在页面内容之下有不透明像素，才能透过原生 vibrancy 模糊它。
+ * body 的 isolation 让底层压在原生窗口之上、页面之下；CSS 锚点把它限制在本菜单
+ * 范围内，不需要布局观察器。 */
+html[data-platform='darwin'] .dtsMenuBacking {
+  display: block;
+  position: fixed;
+  position-anchor: var(--dsh-menu-anchor);
+  top: anchor(top);
+  left: anchor(left);
+  width: anchor-size(width, 0px);
+  height: anchor-size(height, 0px);
+  z-index: -1;
+  background: var(--dsw-alias-bg-base);
+  pointer-events: none;
+}

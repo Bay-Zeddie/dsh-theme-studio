@@ -1,0 +1,84 @@
+/* DisclosureRow.module.css —— 逐条抄自官方 lib/DisclosureRow.module.css。
+ * localName 加 dts 前缀；`--dsh-content-font-delta` / `--dsh-content-font-size-secondary`
+ * 是宿主发布的框架变量，原样保留（设置页的字号偏好正是通过它们驱动这一行）。 */
+
+/* 共享折叠头：[16px 前导] gap 6 [标题 13/24]（默认尺寸）。设置页的字号偏好经
+ * body 发布的轴移动这一行：标题字号跟随次级档（--dsh-content-font-size-secondary：
+ * 正文下一档 —— ≤14 时 −1，>14 时 −2），行高、前导盒与字形边缘按正文 px 增量平移，
+ * 让图标保持它在行里的视觉占比。 */
+
+.dtsDisclosureRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.dtsDisclosureRow {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: calc(24px + var(--dsh-content-font-delta, 0px));
+  min-width: 0;
+}
+
+.dtsDisclosureRow[data-expandable] {
+  cursor: pointer;
+}
+
+.dtsDisclosureLeading {
+  position: relative;
+  flex: none;
+  width: calc(16px + var(--dsh-content-font-delta, 0px));
+  height: calc(16px + var(--dsh-content-font-delta, 0px));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 流内字形在 16px 盒里按 14px 渲染；这条 CSS 覆盖每个 svg 自带的 width/height 属性，
+ * 于是所有已注册图标都能统一缩放而不必逐个传 size。StateDot（svg 带 data-state）
+ * 保持它固定的 figma 尺寸 —— 它是状态标记，不是文字家具。 */
+.dtsDisclosureLeading svg:not([data-state]) {
+  width: calc(14px + var(--dsh-content-font-delta, 0px));
+  height: calc(14px + var(--dsh-content-font-delta, 0px));
+}
+
+button.dtsDisclosureLeading {
+  cursor: pointer;
+}
+
+.dtsDisclosureIconIdle {
+  display: inline-flex;
+  opacity: 1;
+  transition: opacity 100ms ease;
+}
+
+.dtsDisclosureChevronHover {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.dtsDisclosureRow:hover .dtsDisclosureIconIdle {
+  opacity: 0;
+}
+
+.dtsDisclosureRow:hover .dtsDisclosureChevronHover {
+  opacity: 1;
+}
+
+.dtsDisclosureTitle {
+  flex: none;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  color: var(--dsw-alias-label-secondary);
+}
