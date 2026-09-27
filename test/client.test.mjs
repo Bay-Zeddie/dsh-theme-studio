@@ -1447,8 +1447,16 @@ it('★ 零自选色：CHROME_CSS 里除了存档例外，不许有硬编码颜�
   const rootFill = parsed.rule(':root')
   assert.equal(rootFill.get('--dts-glass-fill'), 'transparent',
     '零自选色：玻璃的颜色 100% 来自壁纸（由 blur() 采样），我们一个色都不选')
-  assert.equal(rootFill.get('--dts-glass-blur'), 'var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))',
-    '--dts-glass-blur 恢复为转发层并保留兜底链（模糊只有一个来源；缺席时不许退化成"只变淡不磨砂"）')
+  const blurOwner = parsed.find(() => true).find((entry) => entry.decls.has('--dts-glass-blur'))
+  assert.equal(blurOwner && blurOwner.decls.get('--dts-glass-blur'),
+    'var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))',
+    '--dts-glass-blur 必须是转发层并保留兜底链（模糊只有一个来源；缺席时不许退化成"只变淡不磨砂"）')
+  /* ★★★ 而且**必须声明在 body 上**（第三十三轮）：自定义属性的 var() 在**声明它的元素**上求值，
+     而官方把 --dsw-menu-backdrop-filter 发在 body 上。挂在 :root 上时该元素上它未定义 ⇒ 直接吃
+     fallback，子元素继承到的是**已算完**的固定值、不会重新求值 ⇒ 全页 15 个 backdrop-filter 元素
+     的模糊与「面板模糊/面板饱和」滑块彻底脱钩（真机实测：令牌从 0 变到 60，渲染值一个不动）。 */
+  assert.equal(rootFill.get('--dts-glass-blur'), undefined,
+    '--dts-glass-blur 不许再挂在 :root 上 —— 那样它会在求值时吃 fallback，与模糊滑块脱钩')
   assert.equal(rootFill.get('--dts-glass-fill-thin'), 'rgba(16,20,24,.28)',
     '"无糊小件"的浅底是**半透明薄底**（既不是 transparent、也不是 menu-surface-fill）：'
     + '透明+无糊=控件消失，这条是唯一的技术例外')
@@ -3147,6 +3155,9 @@ it('合并导入必须真的有 UI 入口（宿主与 api 早就实现，此前�
 const RATCHET_ROOT = new URL('../', import.meta.url)
 
 it('★ 棘轮①：CHROME_CSS 的规则数不得增长（新增规则请写进 controls/*.module.css）', async () => {
+  /* 基准 178 → 179（第三十三轮）：唯一一次放行，用来把 `--dts-glass-blur` 的声明从 `:root`
+     挪到 `body` —— 挂在 :root 上会让它在求值时吃 fallback，导致全页 15 个 backdrop-filter 元素
+     的模糊与「面板模糊/面板饱和」滑块脱钩（详见 chrome.ts 里那条 ★★★ 注释）。 */
   const fsx = await import('node:fs')
   const src = fsx.readFileSync(new URL('src/client/chrome.ts', RATCHET_ROOT), 'utf8')
   const a = src.indexOf('CHROME_CSS = [')
@@ -3154,8 +3165,8 @@ it('★ 棘轮①：CHROME_CSS 的规则数不得增长（新增规则请写进 
   const frags = [...src.slice(a, b).matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1])
   const count = (frags.join('\n').match(/\{/g) || []).length
   assert.ok(
-    count <= 178,
-    'CHROME_CSS 规则数从 178 涨到了 ' + count +
+    count <= 179,
+    'CHROME_CSS 规则数从 179 涨到了 ' + count +
     ' —— 新增规则请写进 src/client/controls/*.module.css。这个 TS 字符串数组没有语法高亮、' +
     '没有 lint、选择器非法也不报错，已经因此静默失效过两次。',
   )

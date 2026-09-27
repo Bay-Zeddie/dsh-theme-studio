@@ -1004,10 +1004,18 @@
              · --dts-glass-fill-thin 浅底 —— 只给**没有 backdrop-filter** 的小件用
                （密集小输入 98 个，挂 blur 会合成层爆炸；无糊 + transparent = 消失）
                ⚠️ 它是全局唯一还带自选色的玻璃令牌，是**无奈的技术例外**（见该处注释）
-             · --dts-glass-blur      转发 --dsw-menu-backdrop-filter，带兜底链 */
+             · --dts-glass-blur      转发 --dsw-menu-backdrop-filter，带兜底链（**必须声明在 body 上**，见下方说明） */
           ':root{--dts-glass-fill:transparent;'
-          + '--dts-glass-fill-thin:rgba(16,20,24,.28);'
-          + '--dts-glass-blur:var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))}',
+          + '--dts-glass-fill-thin:rgba(16,20,24,.28)}',
+          /* ★★★ `--dts-glass-blur` **必须声明在 `body` 上，不能挂在 `:root`**。
+             自定义属性的 `var()` 是在**声明它的那个元素**上求值的；而官方的 `--dsw-menu-backdrop-filter`
+             发在 **body** 上（证据：ui-theme 的 design-platform.css 就是 `body { --dsw-alias-bg-base: … }`）。
+             挂在 `:root` 上时该元素上它未定义 ⇒ **直接吃 fallback**；子元素继承到的是**已算完**的固定值，
+             不会重新求值。实测后果（主人问「这些功能是虚的吗」时抓到）：全页 **15 个**带 backdrop-filter 的
+             元素（官方设置面板 / MenuSurface 材质层 / 我们自绘表面）模糊恒为 fallback 那个固定值（blur+饱和度写死在兜底链里，与滑块无关）；
+             拖「面板模糊 / 面板饱和」滑块时 `--dsw-menu-backdrop-filter` 明明在变（模糊 0 → 60），
+             **渲染值一个都不动**。判据：改滑块后读 `body` 上的 `--dts-glass-blur`，期望它跟着变。 */
+          'body{--dts-glass-blur:var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))}',
 
           '@media (max-width:720px){.dts-row{flex-direction:column;align-items:stretch;gap:8px}'
           + '.dts-row-control{justify-content:flex-start}.dts-token-row,.dts-token-row.dts-profile-row{grid-template-columns:1fr}}',

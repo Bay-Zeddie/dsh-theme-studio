@@ -1927,7 +1927,8 @@ window.__ModuleLoader__.load({
 			"select option{background:#16181d;color:var(--dsw-alias-label-primary)}",
 			"select option:hover{background:#263148}",
 			"select option:checked{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}",
-			":root{--dts-glass-fill:transparent;--dts-glass-fill-thin:rgba(16,20,24,.28);--dts-glass-blur:var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))}",
+			":root{--dts-glass-fill:transparent;--dts-glass-fill-thin:rgba(16,20,24,.28)}",
+			"body{--dts-glass-blur:var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%))}",
 			"@media (max-width:720px){.dts-row{flex-direction:column;align-items:stretch;gap:8px}.dts-row-control{justify-content:flex-start}.dts-token-row,.dts-token-row.dts-profile-row{grid-template-columns:1fr}}",
 			"@media (prefers-reduced-motion: reduce){.dts-page *,.dts-suggest,.dts-layer{transition-duration:0s!important;animation-duration:0s!important}}",
 			"body.dts-on.dts-reduced-transparency,body.dts-on.dts-reduced-transparency *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}"
