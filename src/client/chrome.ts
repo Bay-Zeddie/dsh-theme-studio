@@ -272,6 +272,10 @@
              （label 20 + gap 6 + input 36，wrapper 还带自己的下边距），所以 `align-items:flex-end`
              会让按钮比输入框低 12px（截图里就是"按钮掉下去一截"）。这里把这 12px 抵消掉。 */
           '.dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none;margin-bottom:12px}',
+          /* Slider 的数值读数（`<output class="…dtsSliderOutput">`）在真机里被压到 12px / 7px 宽
+             （逐屏核验：背景页两处）—— 读数字被截断/换行。控件层已写 `flex:none`，但父级 flex
+             仍把它压扁，所以这里补一个最小宽度。类名带模块盐 ⇒ 锚**后缀**。 */
+          '.dts-page [class*="dtsSliderOutput"]{flex:none;min-width:46px;text-align:right;white-space:nowrap}',
           /* ⚠️ 本轮删除：为绕过 `tools/css-modules.mjs` 盐 bug 临时补的
              **Input / TextField 等价皮肤**（旧 `.dts-field-grow>input`、
              `.dts-input-flex>span`、`.dts-input-flex input` 五条规则）。

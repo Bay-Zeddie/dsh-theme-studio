@@ -96,6 +96,8 @@ window.__ModuleLoader__.load({
 				"tab.shape": "形状与动效",
 				"tab.advanced": "高级",
 				"tab.profile": "我的方案",
+				"preset.groupTitle": "选择预设",
+				"shape.groupTitle": "圆角、动效与滚动条",
 				"profile.groupTitle": "保存的方案",
 				"profile.hint": "保存\"配色 + 背景 + 玻璃 + 字体\"的整体快照，随时一键切回。",
 				"profile.namePh": "方案名称（如：午夜深蓝）",
@@ -244,6 +246,8 @@ window.__ModuleLoader__.load({
 				"tab.shape": "Shape & Motion",
 				"tab.advanced": "Advanced",
 				"tab.profile": "Profiles",
+				"preset.groupTitle": "Choose a preset",
+				"shape.groupTitle": "Corners, motion & scrollbar",
 				"profile.groupTitle": "Saved profiles",
 				"profile.hint": "A snapshot of colors + backdrop + glass + type — switch back with one click.",
 				"profile.namePh": "Profile name (e.g. Midnight Blue)",
@@ -1787,6 +1791,7 @@ window.__ModuleLoader__.load({
 			".dts-group>.dts-row:last-child,.dts-body>.dts-row:last-child,.dts-group>div:last-child>.dts-row:last-child{border-bottom:none}",
 			".dts-field-row{display:flex;align-items:flex-end;gap:8px}",
 			".dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none;margin-bottom:12px}",
+			".dts-page [class*=\"dtsSliderOutput\"]{flex:none;min-width:46px;text-align:right;white-space:nowrap}",
 			".dts-field-grow{flex:1;min-width:0}",
 			".dts-input-flex{flex:1;min-width:36px;display:flex}",
 			".dts-input-flex>*{flex:1;min-width:0}",
@@ -5280,7 +5285,7 @@ window.__ModuleLoader__.load({
 					})
 				})]
 			}), Group({
-				title: tt("tab.presets"),
+				title: tt("preset.groupTitle"),
 				hint: tt("preset.note"),
 				children: e$1("div", { className: "dts-swatches" }, presets.map(function(preset) {
 					var art = preset.accent === "" ? "linear-gradient(135deg,#f5f6f7,#dfe3e8)" : gradientThumb(preset.gradient);
@@ -6191,7 +6196,7 @@ window.__ModuleLoader__.load({
 		function ShapeTab(props) {
 			var env = props.env, tt = props.t, s = props.doc.shape;
 			return e$1("div", { className: "dts-body" }, Group({
-				title: tt("tab.shape"),
+				title: tt("shape.groupTitle"),
 				hint: tt("shape.cornerHint"),
 				children: [
 					Row({

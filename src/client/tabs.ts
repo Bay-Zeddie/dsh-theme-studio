@@ -329,7 +329,7 @@ import { humanBytes, mediaLookup } from './utils.ts'
               ],
             }),
             Group({
-              title: tt('tab.presets'), hint: tt('preset.note'),
+              title: tt('preset.groupTitle'), hint: tt('preset.note'),
               children: e('div', { className: 'dts-swatches' }, presets.map(function (preset) {
                 var art = preset.accent === '' ? 'linear-gradient(135deg,#f5f6f7,#dfe3e8)' : gradientThumb(preset.gradient);
                 return e('button', {
@@ -897,7 +897,7 @@ import { humanBytes, mediaLookup } from './utils.ts'
           var env = props.env, tt = props.t, s = props.doc.shape;
           return e('div', { className: 'dts-body' },
             Group({
-              title: tt('tab.shape'), hint: tt('shape.cornerHint'),
+              title: tt('shape.groupTitle'), hint: tt('shape.cornerHint'),
               children: [
                 Row({
                   label: tt('shape.corner'),

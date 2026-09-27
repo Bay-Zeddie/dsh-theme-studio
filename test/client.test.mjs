@@ -923,8 +923,8 @@ it('官方 locale 契约 · 词典按 ctx.effect(() => locale.register(ns, {zh,e
   assert.equal(LOCALE_NS, 'dsh-theme-studio', '命名空间常量必须与注册值一致（不许两处各写一遍）')
   assert.equal(registration.dicts.zh, MESSAGES.zh, '词典必须与本地 t() 同源（同一 MESSAGES 对象），不漂移')
   assert.equal(registration.dicts.en, MESSAGES.en)
-  assert.equal(Object.keys(registration.dicts.zh).length, 146, 'zh 词典 146 键（阶段 E 增 section.intro，恢复轮增 shape.motionOff），注册的必须是完整词典')
-  assert.equal(Object.keys(registration.dicts.en).length, 146, 'en 词典 146 键')
+  assert.equal(Object.keys(registration.dicts.zh).length, 148, 'zh 词典 148 键（阶段 E 增 section.intro，恢复轮增 shape.motionOff），注册的必须是完整词典')
+  assert.equal(Object.keys(registration.dicts.en).length, 148, 'en 词典 148 键')
 
   // ② 注册发生在 apply 内，且包在 ctx.effect 里（官方形态），带非空 reason
   const dictEffect = calls.effectDisposers.find((item) => item.reason === 'theme-studio: locale dictionaries')
@@ -1045,7 +1045,7 @@ it('官方 locale 契约 · 位置参数折成官方具名参数，{0} 由官方
   assert.equal(official, '「撤销」这次没有可以作用的内容', '官方插值正则必须命中 {0}（数字属 \\w）')
 })
 
-it('官方 locale 契约 · 146 键逐条经官方服务可解析（键名与官方点分风格一致）', async () => {
+it('官方 locale 契约 · 148 键逐条经官方服务可解析（键名与官方点分风格一致）', async () => {
   const loaded = loadBundle({ boot: {}, language: 'zh-CN' })
   const { MESSAGES, setLocaleService } = loaded.exports.__internals
   const locale = makeFakeLocaleService('zh')
@@ -1053,7 +1053,7 @@ it('官方 locale 契约 · 146 键逐条经官方服务可解析（键名与官
   locale.register('dsh-theme-studio', { zh: MESSAGES.zh, en: MESSAGES.en })
   const bound = locale.bind('dsh-theme-studio')
   const keys = Object.keys(MESSAGES.zh)
-  assert.equal(keys.length, 146)
+  assert.equal(keys.length, 148)
   for (const key of keys) {
     assert.equal(bound(key), MESSAGES.zh[key], `官方目录里 ${key} 必须能取到中文原值`)
   }
