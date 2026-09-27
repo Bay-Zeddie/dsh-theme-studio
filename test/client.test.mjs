@@ -3133,3 +3133,67 @@ it('合并导入必须真的有 UI 入口（宿主与 api 早就实现，此前�
 
 
 
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ★★★ 三条「棘轮」约束（第三十二轮补，主人批准的第一梯队）
+   棘轮 = 只许往好的方向走：把**当前实测值**钉住，将来恶化就红。
+   为什么需要：这个项目最大的风险是**静默失效**（不报错、不白屏，只是某条规则没生效），
+   而静默失效常来自"载体继续恶化"与"两处机制各写一半"。棘轮不改善现状，但它让现状**不再退步**。
+   ⚠️ 本文件是 ESM：没有 require / __dirname，取路径一律 await import + import.meta.url。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const RATCHET_ROOT = new URL('../', import.meta.url)
+
+it('★ 棘轮①：CHROME_CSS 的规则数不得增长（新增规则请写进 controls/*.module.css）', async () => {
+  const fsx = await import('node:fs')
+  const src = fsx.readFileSync(new URL('src/client/chrome.ts', RATCHET_ROOT), 'utf8')
+  const a = src.indexOf('CHROME_CSS = [')
+  const b = src.indexOf('].join(', a)
+  const frags = [...src.slice(a, b).matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1])
+  const count = (frags.join('\n').match(/\{/g) || []).length
+  assert.ok(
+    count <= 178,
+    'CHROME_CSS 规则数从 178 涨到了 ' + count +
+    ' —— 新增规则请写进 src/client/controls/*.module.css。这个 TS 字符串数组没有语法高亮、' +
+    '没有 lint、选择器非法也不报错，已经因此静默失效过两次。',
+  )
+})
+
+it('★ 棘轮②：控件层焦点环覆盖率（除 4 个纯展示控件外都必须有 :focus-visible）', async () => {
+  const fsx = await import('node:fs')
+  const cd = new URL('src/client/controls/', RATCHET_ROOT)
+  /* 体检确认这 4 个不含可聚焦元素（纯展示/纯封装），故豁免：
+       MenuSurface 只画面 · StateDot 状态点 · Tag 只读徽章 · Tooltip 被动展示。
+     另注：TextField / NumberField 的 :focus-visible 是 `outline:none` + `border-color` 变色，
+     那是逐条抄官方 fields.module.css 的口径，**正确**，不要改成 outline。 */
+  const exempt = ['MenuSurface', 'StateDot', 'Tag', 'Tooltip']
+  const missing = fsx.readdirSync(cd)
+    .filter((f) => f.endsWith('.module.css'))
+    .map((f) => f.replace('.module.css', ''))
+    .filter((n) => !exempt.includes(n))
+    .filter((n) => !/:focus-visible/.test(fsx.readFileSync(new URL(n + '.module.css', cd), 'utf8')))
+  assert.deepEqual(missing, [], '这些控件缺 :focus-visible（键盘用户 Tab 上去看不见焦点）：' + missing.join(', '))
+})
+
+it('★ 棘轮③：玻璃令牌双写必须显式登记（host ∩ client 的集合 = 已登记清单）', async () => {
+  const fsx = await import('node:fs')
+  const toks = (s) => new Set(s.match(/--dsw-[a-z0-9-]+/g) || [])
+  const host = toks(fsx.readFileSync(new URL('lib/engine.js', RATCHET_ROOT), 'utf8'))
+  const cli = toks(fsx.readFileSync(new URL('src/client/probe-glass.ts', RATCHET_ROOT), 'utf8'))
+  const both = [...host].filter((x) => cli.has(x)).sort()
+  /* 设计妥协（不是 bug）：host 出全量基准令牌层；client 为"玻璃面上的文字与填充"做对比自愈。
+     两边都会碰到的就是下面这 6 个。**新增或删除都必须改这份清单** —— 这样"谁写哪些令牌"
+     从"靠人记住"变成"改了就红"。 */
+  const KNOWN = [
+    '--dsw-alias-label-caption',
+    '--dsw-alias-label-dimmed',
+    '--dsw-alias-label-primary',
+    '--dsw-alias-label-secondary',
+    '--dsw-alias-label-tertiary',
+    '--dsw-menu-surface-fill',
+  ]
+  assert.deepEqual(both, KNOWN,
+    'host 与 client 都写的 --dsw-* 令牌变了。请确认是有意为之，然后更新这份登记清单。')
+})

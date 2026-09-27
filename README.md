@@ -7,6 +7,19 @@ kind: "package-reference"
 
 English | [中文](README.zh.md)
 
+## 维护者须知（改这个插件前先读这三条）
+
+1. **新增 CSS 规则写进 `src/client/controls/*.module.css`**，不要再往 `src/client/chrome.ts` 的
+   `CHROME_CSS` 数组里加。那个数组是 TS 字符串：没有语法高亮、没有 lint、**选择器非法也不报错**；
+   它已经因此静默失效过两次（注释块夹在数组元素之间时，下一行以 `+` 开头会被解析成**一元加号**，
+   `Number('body…')` = NaN，产物里出现 `"NaNbody…"` 坏选择器，整条规则不生效、不报错、不白屏）。
+   有一条产物级哨兵 + 一条规则数棘轮会咬它。
+2. **`CHROME_CSS` 里的 `⚠️` 注释不要删**。实测 96 个注释块中 **64% 是警告、25% 是实测依据** ——
+   宿主 DOM 是黑盒，这些注释是"为什么锚这个选择器、改这里会踩什么"的唯一记录。
+3. **改任何与宿主外观有关的东西，必须走真机验证**：`npm test` 只能证明语法与契约，证明不了
+   "界面上真的变了"。本仓库的排版/材质问题（背景层被盖、`⌄` 的糊、HARNESS 白斑、面板三列不齐）
+   全部是靠真机读 computed style 才定位到的。
+
 ## Summary
 
 `dsh-theme-studio` (Theme Studio) re-skins the DeepSeek Harness interface: image, video or built-in gradient wallpapers, or none at all. Media is **stored and served byte-for-byte** — no transcoding, no rescaling, no recompression — and video is served with HTTP Range so the scrubber works anywhere in the file. Recoloring is **per token**: **7 groups / 49** real host tokens with paired light and dark values, plus accent-derived palettes, color picking from the wallpaper image, and free-form `--dsw-*` token add/remove. On top of that sit 12 hand-graded light/dark presets, named theme-profile snapshots, uploaded fonts, glass surfaces, corner curvature and motion-duration controls, and window-wide fullscreen.
