@@ -3155,6 +3155,12 @@ it('合并导入必须真的有 UI 入口（宿主与 api 早就实现，此前�
 const RATCHET_ROOT = new URL('../', import.meta.url)
 
 it('★ 棘轮①：CHROME_CSS 的规则数不得增长（新增规则请写进 controls/*.module.css）', async () => {
+  /* 基准 179 → 180（第三十四轮）：新增一条「宿主侧 disabled 按钮可读性」
+     （官方 disabled = 浅底 + 深字 + 整块 opacity .4，在壁纸上会化掉 ⇒ 改成深色实底 + 亮字）。
+     ⚠️ 口径提醒：本棘轮统计的是 CHROME_CSS 的全部规则数，把两类混在一起了 ——
+       (a) 必须住在这里的宿主锚点规则（进 .module.css 会被作用域化成哈希类名而失效）
+       (b) 本该搬进 .module.css 的自绘类规则
+     将来可改成只统计 (b)。 */
   /* 基准 178 → 179（第三十三轮）：唯一一次放行，用来把 `--dts-glass-blur` 的声明从 `:root`
      挪到 `body` —— 挂在 :root 上会让它在求值时吃 fallback，导致全页 15 个 backdrop-filter 元素
      的模糊与「面板模糊/面板饱和」滑块脱钩（详见 chrome.ts 里那条 ★★★ 注释）。 */
@@ -3165,8 +3171,8 @@ it('★ 棘轮①：CHROME_CSS 的规则数不得增长（新增规则请写进 
   const frags = [...src.slice(a, b).matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1])
   const count = (frags.join('\n').match(/\{/g) || []).length
   assert.ok(
-    count <= 179,
-    'CHROME_CSS 规则数从 179 涨到了 ' + count +
+    count <= 180,
+    'CHROME_CSS 规则数从 180 涨到了 ' + count +
     ' —— 新增规则请写进 src/client/controls/*.module.css。这个 TS 字符串数组没有语法高亮、' +
     '没有 lint、选择器非法也不报错，已经因此静默失效过两次。',
   )

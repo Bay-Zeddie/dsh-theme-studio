@@ -764,6 +764,17 @@
           + 'body.dts-on button[class$="_trigger"],body.dts-on button[class*="_trigger "]'
           + '{background:transparent!important;border:0!important;box-shadow:none!important;'
           + 'backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
+          /* ★ 宿主侧 disabled 按钮在壁纸上会"化掉"：官方 disabled = 浅底(白) + 深字 + **整块 opacity .4**，
+             白底被压成 40% 白、字也被压到 40%，压在壁纸上几乎看不见（主人截图：「保存 看不清」）。
+             官方那套样式是按"不透明底"设计的。这里换成**深色实底 + 亮字**，不透明度抬到 .72
+             —— 既看得清，又保留"明显不可点"的差别。
+             ⚠️ 用 `:not()` 避开自家控件（`dtsBtn`）与自家面板（`.dts-page`）：它们有自己的玻璃表面对比，
+             不该被这条改掉。 */
+          'body.dts-on button:disabled:not([class*="dtsBtn"]):not(.dts-page *),'
+          + 'body.dts-on [role="button"][aria-disabled="true"]:not(.dts-page *){'
+          + 'background:var(--dsw-alias-button-elevated-fill)!important;'
+          + 'color:var(--dsw-alias-label-primary)!important;'
+          + 'opacity:.72!important}',
           'body.dts-on button[aria-label]:not([class*="_main"]):hover,'
           + 'body.dts-on button[aria-label]:not([class*="_main"]):active,'
           + 'body.dts-on button[aria-label]:not([class*="_main"])[aria-expanded="true"],'
