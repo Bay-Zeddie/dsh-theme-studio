@@ -766,7 +766,10 @@
           + 'backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
           /* ★ 宿主侧 disabled 按钮在壁纸上会"化掉"：官方 disabled = 浅底(白) + 深字 + **整块 opacity .4**，
              白底被压成 40% 白、字也被压到 40%，压在壁纸上几乎看不见（主人截图：「保存 看不清」）。
-             官方那套样式是按"不透明底"设计的。这里换成**深色实底 + 亮字**，不透明度抬到 .72
+             官方那套样式是按"不透明底"设计的。这里换成**深色实底 + 亮字**。
+             ⚠️ **不要用 `opacity` 表达"禁用"**：opacity 是**整体透明**，会把深色实底也一起冲淡
+             （`.9` 再乘 `.72` ⇒ 实际只有约 65% 不透明，在壁纸上就是"发灰发淡"——主人复测：「太淡了」）。
+             禁用语义交给 `cursor:default` 与"没有 hover/active 反馈"，底色保持不透明才显眼。
              —— 既看得清，又保留"明显不可点"的差别。
              ⚠️ 用 `:not()` 避开自家控件（`dtsBtn`）与自家面板（`.dts-page`）：它们有自己的玻璃表面对比，
              不该被这条改掉。 */
@@ -774,7 +777,7 @@
           + 'body.dts-on [role="button"][aria-disabled="true"]:not(.dts-page *){'
           + 'background:var(--dsw-alias-button-elevated-fill)!important;'
           + 'color:var(--dsw-alias-label-primary)!important;'
-          + 'opacity:.72!important}',
+          + 'opacity:1!important}',
           'body.dts-on button[aria-label]:not([class*="_main"]):hover,'
           + 'body.dts-on button[aria-label]:not([class*="_main"]):active,'
           + 'body.dts-on button[aria-label]:not([class*="_main"])[aria-expanded="true"],'
