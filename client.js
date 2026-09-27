@@ -1792,6 +1792,7 @@ window.__ModuleLoader__.load({
 			".dts-field-row{display:flex;align-items:flex-end;gap:8px}",
 			".dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none;margin-bottom:12px}",
 			".dts-page [class*=\"dtsSliderOutput\"]{flex:none;min-width:46px;text-align:right;white-space:nowrap}",
+			".dts-page [class*=\"dtsPill\"]:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-alias-brand-primary);outline-offset:2px}",
 			".dts-field-grow{flex:1;min-width:0}",
 			".dts-input-flex{flex:1;min-width:36px;display:flex}",
 			".dts-input-flex>*{flex:1;min-width:0}",

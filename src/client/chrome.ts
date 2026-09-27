@@ -276,6 +276,11 @@
              （逐屏核验：背景页两处）—— 读数字被截断/换行。控件层已写 `flex:none`，但父级 flex
              仍把它压扁，所以这里补一个最小宽度。类名带模块盐 ⇒ 锚**后缀**。 */
           '.dts-page [class*="dtsSliderOutput"]{flex:none;min-width:46px;text-align:right;white-space:nowrap}',
+          /* ★ 真机键盘复核发现：`Pill` 控件**自己没有焦点环**
+             （`controls/Pill.module.css` 里没有任何 `:focus-visible`，而 Button/Switch/… 都有）——
+             它用在页签组与色板等处，Tab 到它时看不到焦点（真机实测 8 次 Tab 里唯一 ring=false 的一个）。
+             控件层不在本轮可写范围，因此在页面侧补一条；锚类名**后缀**（盐前缀随构建变）。 */
+          '.dts-page [class*="dtsPill"]:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-alias-brand-primary);outline-offset:2px}',
           /* ⚠️ 本轮删除：为绕过 `tools/css-modules.mjs` 盐 bug 临时补的
              **Input / TextField 等价皮肤**（旧 `.dts-field-grow>input`、
              `.dts-input-flex>span`、`.dts-input-flex input` 五条规则）。
