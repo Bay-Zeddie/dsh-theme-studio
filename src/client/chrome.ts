@@ -752,7 +752,15 @@
              原值 `backdrop-filter: blur(50px)`），不是按钮本身。锚**类名后缀** `_root_`
              （hash 前缀随构建变）。主人原话：要透过壁纸能看见壁纸，不要磨砂。 */
           + 'body.dts-on span[class*="_root_"]:has(> button),'
-          + 'body.dts-on span[class*="_root_"]:has(> button) *,'
+          /* ⚠️ 这里**不能**用 `… *`：菜单根 span 的后代里除了按钮，还有**弹出的菜单面**
+             （`div._surface_…` + 内层材质层 `div._material_…` —— 官方 MenuSurface 的磨砂就长在材质层，
+             它自己 `background: var(--dsw-menu-surface-fill)` + `backdrop-filter: var(--dsw-menu-backdrop-filter)`）。
+             用 `*` 会把菜单面一起 `backdrop-filter:none` + `background:transparent` ⇒ **下拉变成完全透明**。
+             真机实测：菜单面 computed = bg rgba(0,0,0,0)、bf none，而令牌明明是 blur(50px) saturate(260%)。
+             主人要的是「那个 ⌄ 图标透过去」，不是「整个菜单透明」。收窄到**按钮本体 + 按钮内部**
+             （内部那层 span/svg 包裹仍要清 —— 糊可能挂在它上面）。 */
+          + 'body.dts-on span[class*="_root_"]:has(> button) > button,'
+          + 'body.dts-on span[class*="_root_"]:has(> button) > button *,'
           + 'body.dts-on button[class$="_trigger"],body.dts-on button[class*="_trigger "]'
           + '{background:transparent!important;border:0!important;box-shadow:none!important;'
           + 'backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
