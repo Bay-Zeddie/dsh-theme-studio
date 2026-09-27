@@ -756,8 +756,11 @@
           /* 第二十九轮清理：本体的 :hover/:active/[aria-expanded=true] 已被下面 `button:not([class*="primary"]):not([class*="_main"])` 完全覆盖（真机命中 152 >= 13），删重复。 */
           /* ★ 关键补充（主人第二轮复测仍见实底）：那块底的载体**常常不是 `<button>` 本身**，
              而是它内层的 span/svg 包裹（官方 Button 的图标槽自带类与背景）。
-             只写 `button` 打不到它 —— 所以把**后代一并纳入**。 */
-          + 'body.dts-on button[aria-haspopup] *,'
+             只写 `button` 打不到它 —— 所以把**后代一并纳入**。
+             ⚠️ 下面这行**不能**以 `+` 开头：它前面是一个 `,` 结束的数组元素 + 注释块，
+             写成 `+'…'` 会被解析成**一元加号**（`Number('body…')` = NaN），与下一行拼成
+             `"NaNbody.dts-on …"` ⇒ 这两条后代规则**静默失效**（第三十轮核对产物时抓到）。 */
+          'body.dts-on button[aria-haspopup] *,'
           + 'body.dts-on button[aria-expanded] *,'
           + 'body.dts-on [role="button"][aria-expanded],'
           + 'body.dts-on [role="button"][aria-haspopup] *,'

@@ -186,3 +186,17 @@ it('bundle 审计 · locale/*.json 只放市场元信息，文案唯一真源是
     assert.ok(String(parsed.meta.description).trim() !== '', `${name} meta.description 不该是空串`)
   }
 })
+
+/* ★ 回归哨（第三十轮补）：**一元加号事故**。
+   CHROME_CSS 是数组字面量；某元素以 `,` 结束后夹了注释块、而下一行又写成 `+ 'body.dts-on …'` 时，
+   那个 `+` 会被解析成**一元加号**（`Number('body.dts-on …')` = NaN），与后续字符串拼接后
+   产物里就出现 `"NaNbody.dts-on button[aria-expanded] *, …"` 这种**坏选择器**：规则静默失效。
+   这类事故语法合法、类型合法、常规断言也看不见 —— **只能对产物文本查**。
+   实测抓到过一次：`button[aria-haspopup] *` 与 `button[aria-expanded] *` 两条后代清模糊全部作废。 */
+it('★ 产物里不得出现一元加号事故（NaN 开头的坏选择器）', async () => {
+  const { readFileSync } = await import('node:fs')
+  const Q = String.fromCharCode(34) // 双引号：避免在源码里写引号
+  const src = readFileSync(new URL('../client.js', import.meta.url), 'utf8')
+  const hits = src.split(Q + 'NaN').slice(1).map((rest) => 'NaN' + rest.slice(0, 80))
+  assert.deepEqual(hits, [], '产物出现 NaN 开头的坏选择器（一元加号事故）：' + hits.join(' | '))
+})
