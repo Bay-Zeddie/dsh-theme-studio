@@ -16,6 +16,9 @@ import { e } from './deps.ts'
             'section.intro': '给界面换背景图片与视频，逐令牌改配色、字体、圆角与玻璃质感；改动实时生效，随时可恢复默认。',
             'tab.presets': '预设', 'tab.backdrop': '背景', 'tab.library': '素材库',
             'tab.color': '色彩', 'tab.type': '文字', 'tab.shape': '形状与动效', 'tab.advanced': '高级', 'tab.profile': '我的方案',
+            /* 分组标题**不能**沿用页签名（`tab.profile` = 「我的方案」），否则页面标题下
+               又出现一个同名小标题（主人截图点出的"重复标题"）。 */
+            'profile.groupTitle': '保存的方案',
             'profile.hint': '保存"配色 + 背景 + 玻璃 + 字体"的整体快照，随时一键切回。',
             'profile.namePh': '方案名称（如：午夜深蓝）',
             'profile.saveNew': '保存当前方案',
@@ -106,6 +109,7 @@ import { e } from './deps.ts'
             'section.intro': 'Swap in image and video backdrops, retune colors per token, fonts, corners and glass — changes apply live and reset in one click.',
             'tab.presets': 'Presets', 'tab.backdrop': 'Backdrop', 'tab.library': 'Library',
             'tab.color': 'Colors', 'tab.type': 'Type', 'tab.shape': 'Shape & Motion', 'tab.advanced': 'Advanced', 'tab.profile': 'Profiles',
+            'profile.groupTitle': 'Saved profiles',
             'profile.hint': 'A snapshot of colors + backdrop + glass + type — switch back with one click.',
             'profile.namePh': 'Profile name (e.g. Midnight Blue)',
             'profile.saveNew': 'Save current',

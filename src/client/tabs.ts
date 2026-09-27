@@ -1018,7 +1018,7 @@ import { humanBytes, mediaLookup } from './utils.ts'
           }
           return e('div', { className: 'dts-body' },
             Group({
-              title: tt('tab.profile'), hint: tt('profile.hint'),
+              title: tt('profile.groupTitle'), hint: tt('profile.hint'),
               children: e('div', { className: 'dts-field-row' },
                 e(TextField, {
                   className: 'dts-field-grow',

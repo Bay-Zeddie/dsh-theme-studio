@@ -96,6 +96,7 @@ window.__ModuleLoader__.load({
 				"tab.shape": "形状与动效",
 				"tab.advanced": "高级",
 				"tab.profile": "我的方案",
+				"profile.groupTitle": "保存的方案",
 				"profile.hint": "保存\"配色 + 背景 + 玻璃 + 字体\"的整体快照，随时一键切回。",
 				"profile.namePh": "方案名称（如：午夜深蓝）",
 				"profile.saveNew": "保存当前方案",
@@ -243,6 +244,7 @@ window.__ModuleLoader__.load({
 				"tab.shape": "Shape & Motion",
 				"tab.advanced": "Advanced",
 				"tab.profile": "Profiles",
+				"profile.groupTitle": "Saved profiles",
 				"profile.hint": "A snapshot of colors + backdrop + glass + type — switch back with one click.",
 				"profile.namePh": "Profile name (e.g. Midnight Blue)",
 				"profile.saveNew": "Save current",
@@ -1784,7 +1786,7 @@ window.__ModuleLoader__.load({
 			".dts-focus-num{width:80px;padding:0}",
 			".dts-group>.dts-row:last-child,.dts-body>.dts-row:last-child,.dts-group>div:last-child>.dts-row:last-child{border-bottom:none}",
 			".dts-field-row{display:flex;align-items:flex-end;gap:8px}",
-			".dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none}",
+			".dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none;margin-bottom:12px}",
 			".dts-field-grow{flex:1;min-width:0}",
 			".dts-input-flex{flex:1;min-width:36px;display:flex}",
 			".dts-input-flex>*{flex:1;min-width:0}",
@@ -6369,7 +6371,7 @@ window.__ModuleLoader__.load({
 				return bits.join(" · ");
 			}
 			return e$1("div", { className: "dts-body" }, Group({
-				title: tt("tab.profile"),
+				title: tt("profile.groupTitle"),
 				hint: tt("profile.hint"),
 				children: e$1("div", { className: "dts-field-row" }, e$1(TextField, {
 					className: "dts-field-grow",

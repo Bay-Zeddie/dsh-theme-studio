@@ -268,7 +268,10 @@
           '.dts-field-row{display:flex;align-items:flex-end;gap:8px}',
           /* 输入框行：`align-items:flex-end` 让按钮与 input 底部对齐，但按钮是 `sm`(28px)、
              TextField 的 input 是 34px ⇒ 一高一矮看着仍然不齐。把行内按钮抬到同高。 */
-          '.dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none}',
+          /* 真机实测：TextField 的 wrapper 底部比它内部 input 的底部**低 12px**
+             （label 20 + gap 6 + input 36，wrapper 还带自己的下边距），所以 `align-items:flex-end`
+             会让按钮比输入框低 12px（截图里就是"按钮掉下去一截"）。这里把这 12px 抵消掉。 */
+          '.dts-field-row .dts-btn,.dts-field-row button{height:34px;flex:none;margin-bottom:12px}',
           /* ⚠️ 本轮删除：为绕过 `tools/css-modules.mjs` 盐 bug 临时补的
              **Input / TextField 等价皮肤**（旧 `.dts-field-grow>input`、
              `.dts-input-flex>span`、`.dts-input-flex input` 五条规则）。
