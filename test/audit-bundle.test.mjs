@@ -195,8 +195,17 @@ it('bundle 审计 · locale/*.json 只放市场元信息，文案唯一真源是
    实测抓到过一次：`button[aria-haspopup] *` 与 `button[aria-expanded] *` 两条后代清模糊全部作废。 */
 it('★ 产物里不得出现一元加号事故（NaN 开头的坏选择器）', async () => {
   const { readFileSync } = await import('node:fs')
-  const Q = String.fromCharCode(34) // 双引号：避免在源码里写引号
+  const Q = String.fromCharCode(34) // 双引号
   const src = readFileSync(new URL('../client.js', import.meta.url), 'utf8')
-  const hits = src.split(Q + 'NaN').slice(1).map((rest) => 'NaN' + rest.slice(0, 80))
+  /* 只认**数组元素边界**上的坏字符串：产物里坏规则长这样 —— `, "NaNbody.dts-on …"` 或 `[\n "NaNbody…"`。
+     注释里的**引文**（例如维护约定里引用这个坏形态）前面是空格或反引号，不算 —— 否则哨兵会被自己的文档咬到。 */
+  const hits = []
+  let i = src.indexOf(Q + 'NaN')
+  while (i >= 0) {
+    let j = i - 1
+    while (j >= 0 && /\s/.test(src[j])) j -= 1
+    if (src[j] === ',' || src[j] === '[') hits.push(src.slice(i, i + 80))
+    i = src.indexOf(Q + 'NaN', i + 1)
+  }
   assert.deepEqual(hits, [], '产物出现 NaN 开头的坏选择器（一元加号事故）：' + hits.join(' | '))
 })

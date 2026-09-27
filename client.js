@@ -1746,6 +1746,19 @@ window.__ModuleLoader__.load({
 		var GLASS_BLUR = "var(--dts-glass-blur,var(--dsw-menu-backdrop-filter,blur(40px) saturate(150%)))";
 		/** 玻璃面统一组装：省得每条规则各写一遍、漏掉一半。 */
 		var glass = (background) => "background:" + background + "!important;backdrop-filter:" + GLASS_BLUR + "!important";
+		/**
+		* ⚠️ **维护约定（第三十一轮定）**：
+		*   1. **新增规则请写进 `src/client/controls/*.module.css`**（走已有的 CSS Modules 管线），
+		*      不要再往本数组里加。这个数组是 TS 字符串，**没有语法高亮、没有 lint、
+		*      选择器非法也不报错** —— 实测踩过两次：注释块夹在数组元素之间时，下一行以 `+` 开头
+		*      会被解析成**一元加号**（`+'str'` = NaN），产物里出现 `"NaNbody…"` 坏选择器，
+		*      整条规则**静默失效**（不报错、不白屏）。
+		*      `test/audit-bundle.test.mjs` 有一条产物级哨兵会咬它，但那只是兜底。
+		*   2. 存量 206 条规则**暂不搬迁**：搬迁过程本身极易再造同类静默失效，
+		*      要做必须先有产物级护栏（哨兵已补），且一格一格搬、每格跑真机。
+		*   3. 注释里 `⚠️` 那类**不要删** —— 它们记录的是"为什么锚这个"与"改这里会踩什么"，
+		*      宿主 DOM 是黑盒，这些是唯一的依据（实测：96 个注释块里 64% 是警告、25% 是实测依据）。
+		*/
 		var CHROME_CSS = [
 			"body.dts-on .dts-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;contain:paint}",
 			"body.dts-on #root{position:relative;z-index:1}",
